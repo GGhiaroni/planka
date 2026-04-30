@@ -2,6 +2,11 @@ docker-compose.override.yml
 .idea
 .DS_Store
 
+# Production secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
 node_modules
 
 # Prevent another lockfile than package-lock.json (npm) from being created

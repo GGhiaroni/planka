@@ -1,6 +1,7 @@
 **/.DS_Store
 
 */node_modules
+**/node_modules
 
 server/swagger.json
 server/.env
@@ -21,3 +22,11 @@ server/terms/*
 !server/terms/cloud
 
 client/dist
+
+# Production deploy artifacts not needed inside images
+.env
+.env.local
+.env.*.local
+.git
+.claude
+ticket-form/data

@@ -1,0 +1,37 @@
+# Caddy reverse proxy with automatic HTTPS via Let's Encrypt.
+#
+# Each domain gets a free TLS cert provisioned automatically on first request.
+# DNS records for both domains must already point to the VPS public IP before
+# Caddy can complete the ACME challenge.
+
+{
+    email {$LETSENCRYPT_EMAIL}
+}
+
+# --- Planka (kanban + table view) ---
+{$PLANKA_DOMAIN} {
+    encode gzip zstd
+
+    # Allow large uploads (cover images, attachments)
+    request_body {
+        max_size 100MB
+    }
+
+    reverse_proxy planka:1337 {
+        # WebSocket support for real-time card updates
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# --- Public ticket forms ---
+{$FORM_DOMAIN} {
+    encode gzip zstd
+
+    reverse_proxy ticket-form:3001 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

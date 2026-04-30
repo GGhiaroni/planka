@@ -1,0 +1,87 @@
+# Production stack: Planka (custom image) + Postgres + ticket-form + Caddy reverse proxy.
+# Use with: `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
+#
+# Required DNS:
+#   ${PLANKA_DOMAIN} → VPS IP
+#   ${FORM_DOMAIN}   → VPS IP
+#
+services:
+  planka:
+    build:
+      context: .
+      dockerfile: planka.Dockerfile
+    image: planka-custom:latest
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      - BASE_URL=https://${PLANKA_DOMAIN}
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres/planka
+      - SECRET_KEY=${SECRET_KEY}
+      - TRUST_PROXY=true
+      - TOKEN_EXPIRES_IN=365
+      - DEFAULT_ADMIN_EMAIL=${ADMIN_EMAIL}
+      - DEFAULT_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - DEFAULT_ADMIN_NAME=${ADMIN_NAME}
+      - DEFAULT_ADMIN_USERNAME=${ADMIN_USERNAME}
+      - DEFAULT_LANGUAGE=pt-BR
+    volumes:
+      - planka-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=planka
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d planka"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ticket-form:
+    build:
+      context: ./ticket-form
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - PLANKA_URL=http://planka:1337
+      - PLANKA_EMAIL=${PLANKA_FORM_EMAIL}
+      - PLANKA_PASSWORD=${PLANKA_FORM_PASSWORD}
+      - PLANKA_LIST_ID=${PLANKA_LIST_ID}
+      - PLANKA_CHAMADOS_LIST_ID=${PLANKA_CHAMADOS_LIST_ID}
+      - PRIORITY_LABELS=${PRIORITY_LABELS}
+      - CONTACT_REASONS=${CONTACT_REASONS:-Manutenção,Financeiro,Troca de Arte}
+    depends_on:
+      - planka
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - PLANKA_DOMAIN=${PLANKA_DOMAIN}
+      - FORM_DOMAIN=${FORM_DOMAIN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - planka
+      - ticket-form
+
+volumes:
+  planka-data:
+  postgres-data:
+  caddy-data:
+  caddy-config:
