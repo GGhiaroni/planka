@@ -63,6 +63,23 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      const label = await Label.qm.getOneById(cardLabel.labelId);
+
+      await sails.helpers.actions.createOne.with({
+        webhooks,
+        values: {
+          card: inputs.card,
+          type: Action.Types.REMOVE_LABEL_FROM_CARD,
+          data: {
+            label: label ? _.pick(label, ['id', 'name', 'color']) : { id: cardLabel.labelId },
+          },
+          user: inputs.actorUser,
+        },
+        project: inputs.project,
+        board: inputs.board,
+        list: inputs.list,
+      });
     }
 
     return cardLabel;

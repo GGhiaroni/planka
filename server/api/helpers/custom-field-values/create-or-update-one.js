@@ -33,6 +33,15 @@ module.exports = {
   async fn(inputs) {
     const { values } = inputs;
 
+    // Capture previous value before write so we can log a meaningful diff.
+    const previousValue =
+      await CustomFieldValue.qm.getOneByCardIdAndCustomFieldGroupIdAndCustomFieldId(
+        values.card.id,
+        values.customFieldGroup.id,
+        values.customField.id,
+      );
+    const previousContent = previousValue ? previousValue.content : null;
+
     const customFieldValue = await CustomFieldValue.qm.createOrUpdateOne({
       ...values,
       cardId: values.card.id,
@@ -68,6 +77,25 @@ module.exports = {
       }),
       user: inputs.actorUser,
     });
+
+    if (previousContent !== customFieldValue.content) {
+      await sails.helpers.actions.createOne.with({
+        webhooks,
+        values: {
+          card: values.card,
+          type: Action.Types.UPDATE_CUSTOM_FIELD_VALUE,
+          data: {
+            customField: _.pick(values.customField, ['id', 'name']),
+            fromContent: previousContent,
+            toContent: customFieldValue.content,
+          },
+          user: inputs.actorUser,
+        },
+        project: inputs.project,
+        board: inputs.board,
+        list: inputs.list,
+      });
+    }
 
     return customFieldValue;
   },

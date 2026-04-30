@@ -1,0 +1,439 @@
+/*!
+ * Copyright (c) 2024 PLANKA Software GmbH
+ * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
+ */
+
+:global(#app) {
+  .wrapper {
+    overflow: auto;
+    padding: 12px 20px;
+    width: 100%;
+    height: 100%;
+  }
+
+  .filterBar {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+
+    label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+    }
+
+    select {
+      padding: 7px 10px;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+
+      &:focus {
+        border-color: #4f6bed;
+      }
+    }
+  }
+
+  .searchInput {
+    padding: 7px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+    outline: none;
+    min-width: 220px;
+    color: #222;
+
+    &:focus {
+      border-color: #4f6bed;
+    }
+
+    &::placeholder {
+      color: #aaa;
+    }
+  }
+
+  .clearBtn {
+    padding: 8px 14px;
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    height: fit-content;
+
+    &:hover {
+      background: #fee2e2;
+    }
+  }
+
+  .rowCount {
+    margin-left: auto;
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+  }
+
+  .table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    font-size: 13px;
+  }
+
+  .headerCell {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    background: #2e3748;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .row {
+    border-bottom: 1px solid #e8eaed;
+    transition: background 0.1s, opacity 0.15s;
+    cursor: grab;
+
+    &:hover {
+      background: #eef3ff;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .rowDragging {
+    opacity: 0.4;
+  }
+
+  .rowDropTarget {
+    box-shadow: inset 4px 0 0 0 #4f6bed;
+  }
+
+  /* Priority-based row colors (match the legend image exactly). */
+  $priorities: (
+    priorityBaixa:        (#00ff00, #000),
+    priorityMedia:        (#ffff00, #000),
+    priorityUrgencia:     (#ff0000, #fff),
+    priorityTratamento:   (#00ffff, #000),
+    priorityAtualizacao:  (#0000ff, #fff),
+    priorityPendencias:   (#ff8c00, #fff),
+    priorityEspera:       (#ff1493, #fff),
+    priorityMaxima:       (#663399, #fff),
+  );
+
+  @each $name, $colors in $priorities {
+    $bg: nth($colors, 1);
+    $fg: nth($colors, 2);
+
+    .#{$name} {
+      background: $bg !important;
+      color: $fg !important;
+
+      td { color: $fg; }
+
+      // Form inputs in edit mode keep their normal styling
+      input, select, textarea {
+        color: #222 !important;
+        background: #fff !important;
+      }
+
+      .placeholder { color: rgba($fg, 0.65) !important; }
+      .openBtn {
+        color: $fg;
+        border-color: rgba($fg, 0.5);
+        background: rgba(255,255,255,0.2);
+      }
+      .openBtn:hover { background: $fg; color: $bg; }
+      .dragHandle { color: rgba($fg, 0.6); }
+      .editable:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+        box-shadow: inset 0 0 0 2px $fg;
+      }
+      .labelPill {
+        background: rgba(0, 0, 0, 0.3);
+        color: $fg;
+        border: 1px solid rgba($fg, 0.5);
+      }
+    }
+
+    .#{$name}:hover {
+      filter: brightness(1.06);
+    }
+  }
+
+  .dragHandle {
+    display: inline-block;
+    color: #ccc;
+    font-size: 11px;
+    margin-right: 5px;
+    cursor: grab;
+    user-select: none;
+    letter-spacing: -2px;
+
+    &:hover { color: #4f6bed; }
+  }
+
+  .groupHeader {
+    background: linear-gradient(180deg, #2e3748 0%, #3a4458 100%);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .groupHeaderCell {
+    padding: 12px 16px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 36px;
+    background: inherit;
+    z-index: 9;
+  }
+
+  .groupName {
+    margin-right: 12px;
+  }
+
+  .groupCount {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .dropHint {
+    margin-left: 14px;
+    background: #fff;
+    color: #2e3748;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .dropTarget,
+  .dropTarget .groupHeaderCell {
+    background: linear-gradient(180deg, #4f6bed 0%, #3a56d4 100%) !important;
+    box-shadow: inset 0 0 0 2px #fff;
+  }
+
+  .emptyGroupRow {
+    background: #fafbfc;
+  }
+
+  .emptyGroupCell {
+    padding: 16px;
+    text-align: center;
+    color: #aaa;
+    font-style: italic;
+    font-size: 12px;
+    border: 2px dashed transparent;
+  }
+
+  .emptyGroupRow.dropTarget .emptyGroupCell {
+    border-color: #4f6bed;
+    background: #eef3ff;
+    color: #4f6bed;
+    font-weight: 600;
+  }
+
+  .editable {
+    cursor: cell;
+    position: relative;
+
+    &:hover {
+      background: #fff6d5;
+      box-shadow: inset 0 0 0 2px #f0c840;
+    }
+  }
+
+  .placeholder {
+    color: #bbb;
+    font-style: italic;
+  }
+
+  .cellInput {
+    width: 100%;
+    border: 2px solid #4f6bed;
+    border-radius: 3px;
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    color: #222;
+    box-sizing: border-box;
+
+    &[type="text"], &:not(textarea) {
+      height: 100%;
+    }
+  }
+
+  textarea.cellInput {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .cellAction {
+    padding: 4px 6px;
+    text-align: center;
+    width: 32px;
+  }
+
+  .openBtn {
+    background: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.1s;
+
+    &:hover {
+      background: #4f6bed;
+      color: #fff;
+      border-color: #4f6bed;
+    }
+  }
+
+  .rowNum {
+    padding: 9px 14px;
+    color: #999;
+    font-weight: 600;
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .cell {
+    padding: 9px 14px;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cellBold {
+    padding: 9px 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+    white-space: nowrap;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cellWrap {
+    padding: 9px 14px;
+    white-space: normal;
+    max-width: 320px;
+  }
+
+  .empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+  }
+
+  .labelPill {
+    display: inline-block;
+    padding: 3px 10px;
+    margin: 2px 4px 2px 0;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #eee;
+    color: #333;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* Label color palette — matches Planka's LabelColors */
+  .color-muddy-grey         { background: #4d4d4d; color: #fff; }
+  .color-autumn-leafs       { background: #d2691e; color: #fff; }
+  .color-morning-sky        { background: #87ceeb; color: #000; }
+  .color-antique-blue       { background: #4682b4; color: #fff; }
+  .color-egg-yellow         { background: #f0d060; color: #000; }
+  .color-desert-sand        { background: #deb887; color: #000; }
+  .color-dark-granite       { background: #303030; color: #fff; }
+  .color-fresh-salad        { background: #32cd32; color: #fff; }
+  .color-lagoon-blue        { background: #4fa8b5; color: #fff; }
+  .color-midnight-blue      { background: #000080; color: #fff; }
+  .color-light-orange       { background: #ffa07a; color: #000; }
+  .color-pumpkin-orange     { background: #ff8c00; color: #fff; }
+  .color-light-concrete     { background: #d3d3d3; color: #000; }
+  .color-sunny-grass        { background: #9acd32; color: #fff; }
+  .color-navy-blue          { background: #003366; color: #fff; }
+  .color-lilac-eyes         { background: #9370db; color: #fff; }
+  .color-apricot-red        { background: #e66761; color: #fff; }
+  .color-orange-peel        { background: #ff7f00; color: #fff; }
+  .color-silver-glint       { background: #c0c0c0; color: #000; }
+  .color-bright-moss        { background: #5fad41; color: #fff; }
+  .color-deep-ocean         { background: #00384b; color: #fff; }
+  .color-summer-sky         { background: #0ea5e9; color: #fff; }
+  .color-berry-red          { background: #d32f2f; color: #fff; }
+  .color-light-cocoa        { background: #a67b5b; color: #fff; }
+  .color-grey-stone         { background: #787878; color: #fff; }
+  .color-tank-green         { background: #556b2f; color: #fff; }
+  .color-coral-green        { background: #2e8b57; color: #fff; }
+  .color-sugar-plum         { background: #914e75; color: #fff; }
+  .color-pink-tulip         { background: #e91e63; color: #fff; }
+  .color-shady-rust         { background: #8b4513; color: #fff; }
+  .color-wet-rock           { background: #708090; color: #fff; }
+  .color-wet-moss           { background: #6b8e23; color: #fff; }
+  .color-turquoise-sea      { background: #00ced1; color: #000; }
+  .color-lavender-fields    { background: #b57edc; color: #fff; }
+  .color-piggy-red          { background: #ff0033; color: #fff; }
+  .color-light-mud          { background: #bdb76b; color: #000; }
+  .color-gun-metal          { background: #2c3e50; color: #fff; }
+  .color-modern-green       { background: #00a676; color: #fff; }
+  .color-french-coast       { background: #5580a4; color: #fff; }
+  .color-sweet-lilac        { background: #e6a8d7; color: #000; }
+  .color-red-burgundy       { background: #800020; color: #fff; }
+  .color-pirate-gold        { background: #b8860b; color: #fff; }
+}

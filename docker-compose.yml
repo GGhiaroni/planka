@@ -22,7 +22,7 @@ services:
       # secrets:
       #   - database_password
 
-      - SECRET_KEY=notsecretkey
+      - SECRET_KEY=d8d44dd145c957ba8306e8ac2f6a86ac31c8631fc87ce41d7b3f5fd1be2c1b3eda97fbbc4773a94ea428602d7548283f0c7fe1bcffa1ca89764c7d0c834c2c07
       # Optionally store in secrets - then SECRET_KEY should not be set
       # - SECRET_KEY__FILE=/run/secrets/secret_key
 
@@ -48,12 +48,12 @@ services:
       # - DEFAULT_LANGUAGE=en-US
 
       # Do not comment out DEFAULT_ADMIN_EMAIL if you want to prevent this user from being edited/deleted
-      # - DEFAULT_ADMIN_EMAIL=demo@demo.demo
-      # - DEFAULT_ADMIN_PASSWORD=demo
+      - DEFAULT_ADMIN_EMAIL=gghiaronitiziano@gmail.com
+      - DEFAULT_ADMIN_PASSWORD=Planka@local1
       # Optionally store in secrets - then DEFAULT_ADMIN_PASSWORD should not be set
       # - DEFAULT_ADMIN_PASSWORD__FILE=/run/secrets/default_admin_password
-      # - DEFAULT_ADMIN_NAME=Demo Demo
-      # - DEFAULT_ADMIN_USERNAME=demo
+      - DEFAULT_ADMIN_NAME=Gabriel Ghiaroni
+      - DEFAULT_ADMIN_USERNAME=gghiaroni
 
       # Set to true to show more detailed authentication error messages.
       # It should not be enabled without a rate limiter for security reasons.
@@ -134,6 +134,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  ticket-form:
+    build:
+      context: ./ticket-form
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - PLANKA_URL=http://planka:1337
+      - PLANKA_EMAIL=gghiaronitiziano@gmail.com
+      - PLANKA_PASSWORD=Planka@local1
+      - PLANKA_LIST_ID=1753255561220064266
+      - CONTACT_REASONS=Manutenção,Financeiro,Troca de Arte
+      # Chamados Técnicos board
+      - PLANKA_CHAMADOS_LIST_ID=1759020606885463271
+      - PRIORITY_LABELS=BAIXA PRIORIDADE:1759020609234273514,MÉDIA GRAVIDADE:1759020610081522923,URGÊNCIA:1759020610828109036,EM TRATAMENTO:1759020611432088813,ATUALIZAÇÃO DO TRATAMENTO:1759020612128343278,PENDÊNCIAS DE INSTALAÇÃO:1759020613017535727,EM ESPERA:1759020614057723120,MÁXIMA PRIORIDADE:1759020614930138353
+    depends_on:
+      - planka
 
   postgres:
     image: postgres:16-alpine

@@ -29,6 +29,9 @@ const Filters = React.memo(() => {
   const labelIds = useSelector(selectors.selectFilterLabelIdsForCurrentBoard);
   const currentUserId = useSelector(selectors.selectCurrentUserId);
 
+  // Distinct Cliente / Nome Do Posto values for autocomplete suggestions.
+  const clientSuggestionsAll = useSelector(selectors.selectClientFieldValues);
+
   const withCurrentUserSelector = useSelector(
     (state) => !!selectors.selectCurrentUserMembershipForCurrentBoard(state),
   );
@@ -192,7 +195,7 @@ const Filters = React.memo(() => {
           </span>
         ))}
       </span>
-      <span className={styles.filter}>
+      <span className={classNames(styles.filter, styles.searchWrapper)}>
         <Input
           ref={handleSearchFieldRef}
           value={search}
@@ -211,6 +214,35 @@ const Filters = React.memo(() => {
           onChange={handleSearchChange}
           onBlur={handleSearchBlur}
         />
+        {isSearchFocused && search && search.length >= 1 && (() => {
+          const q = search.toLowerCase();
+          const matches = clientSuggestionsAll
+            .filter((name) => name.toLowerCase().includes(q) && name.toLowerCase() !== q)
+            .slice(0, 8);
+          if (matches.length === 0) return null;
+          return (
+            <div
+              className={styles.autocompleteDropdown}
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <div className={styles.autocompleteHeader}>Clientes</div>
+              {matches.map((name) => (
+                <div
+                  key={name}
+                  className={styles.autocompleteItem}
+                  onClick={() => {
+                    setSearch(name);
+                    debouncedSearch(name);
+                    debouncedSearch.flush();
+                    if (searchFieldRef.current) searchFieldRef.current.blur();
+                  }}
+                >
+                  {name}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </span>
     </>
   );

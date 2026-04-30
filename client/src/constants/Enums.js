@@ -51,6 +51,7 @@ export const BoardViews = {
   KANBAN: 'kanban',
   GRID: 'grid',
   LIST: 'list',
+  TABLE: 'table',
 };
 
 export const BoardContexts = {
@@ -99,6 +100,12 @@ export const ActivityTypes = {
   REMOVE_MEMBER_FROM_CARD: 'removeMemberFromCard',
   COMPLETE_TASK: 'completeTask',
   UNCOMPLETE_TASK: 'uncompleteTask',
+  UPDATE_CARD_NAME: 'updateCardName',
+  UPDATE_CARD_DESCRIPTION: 'updateCardDescription',
+  UPDATE_CARD_DUE_DATE: 'updateCardDueDate',
+  ADD_LABEL_TO_CARD: 'addLabelToCard',
+  REMOVE_LABEL_FROM_CARD: 'removeLabelFromCard',
+  UPDATE_CUSTOM_FIELD_VALUE: 'updateCustomFieldValue',
 };
 
 export const NotificationTypes = {

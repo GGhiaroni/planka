@@ -331,6 +331,71 @@ module.exports = {
             list: values.list,
           });
         }
+
+        // Log card name change
+        if (
+          !_.isUndefined(values.name) &&
+          values.name !== inputs.record.name
+        ) {
+          await sails.helpers.actions.createOne.with({
+            webhooks,
+            values: {
+              card,
+              type: Action.Types.UPDATE_CARD_NAME,
+              data: {
+                fromName: inputs.record.name,
+                toName: values.name,
+              },
+              user: inputs.actorUser,
+            },
+            project: inputs.project,
+            board: inputs.board,
+            list: inputs.list,
+          });
+        }
+
+        // Log description change (just record that it changed; not the diff)
+        if (
+          !_.isUndefined(values.description) &&
+          values.description !== inputs.record.description
+        ) {
+          await sails.helpers.actions.createOne.with({
+            webhooks,
+            values: {
+              card,
+              type: Action.Types.UPDATE_CARD_DESCRIPTION,
+              data: {
+                hasContent: !!(values.description && String(values.description).trim()),
+              },
+              user: inputs.actorUser,
+            },
+            project: inputs.project,
+            board: inputs.board,
+            list: inputs.list,
+          });
+        }
+
+        // Log due date change
+        if (
+          !_.isUndefined(values.dueDate) &&
+          String(values.dueDate || '') !== String(inputs.record.dueDate || '')
+        ) {
+          await sails.helpers.actions.createOne.with({
+            webhooks,
+            values: {
+              card,
+              type: Action.Types.UPDATE_CARD_DUE_DATE,
+              data: {
+                fromDueDate: inputs.record.dueDate,
+                toDueDate: values.dueDate,
+              },
+              user: inputs.actorUser,
+            },
+            project: inputs.project,
+            board: inputs.board,
+            list: inputs.list,
+          });
+        }
       }
 
       if (tasks) {

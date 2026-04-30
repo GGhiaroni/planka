@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chamados — Visão em Tabela</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      text-decoration: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+
+    .btn-primary {
+      background: #4f6bed;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #3a56d4; }
+
+    .badge {
+      background: #4f6bed;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+
+    /* Table container */
+    .table-wrapper {
+      overflow-x: auto;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1200px;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+      font-size: 0.85rem;
+    }
+
+    thead {
+      background: #1a1a2e;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+      position: sticky;
+      top: 48px;
+      background: #1a1a2e;
+      z-index: 10;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #eee;
+      transition: background .1s;
+    }
+
+    tbody tr:nth-child(even) { background: #f8f9fb; }
+    tbody tr:hover { background: #eef0fb; }
+
+    tbody td {
+      padding: 10px 14px;
+      white-space: nowrap;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    td.wrap {
+      white-space: normal;
+      max-width: 300px;
+    }
+
+    /* Row number */
+    .row-num {
+      color: #999;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-align: center;
+    }
+
+    /* List badge */
+    .list-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #e0e7ff;
+      color: #3949ab;
+    }
+
+    /* Loading & empty states */
+    .state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #888;
+      font-size: 1rem;
+    }
+
+    .state .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ddd;
+      border-top-color: #4f6bed;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .topbar { padding: 12px 16px; }
+      .table-wrapper { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>Chamados — Visão em Tabela <span class="badge" id="countBadge">—</span></h1>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary" onclick="loadCards()">Atualizar</button>
+      <a href="/" class="btn btn-primary">Novo Pedido</a>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <div class="state" id="loading"><div class="spinner"></div> Carregando chamados...</div>
+    <table id="table" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Lista</th>
+          <th>Nome do Posto</th>
+          <th>Bandeira</th>
+          <th>Cidade</th>
+          <th>Estado</th>
+          <th>Responsável</th>
+          <th>Telefone</th>
+          <th>Equipamento</th>
+          <th>Tipo LED</th>
+          <th>Negociação</th>
+          <th>Vendedor</th>
+          <th>Data</th>
+          <th>Aberto Em</th>
+          <th>Observações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="state" id="empty" style="display:none">Nenhum chamado encontrado.</div>
+  </div>
+
+  <script>
+    const COLUMNS = [
+      'Nome Do Posto',
+      'Bandeira',
+      'Cidade',
+      'Estado',
+      'Nome Responsável',
+      'Telefone Responsável',
+      'Equipamento',
+      'Tipo Led',
+      'Tipo De Negociação',
+      'Vendedor',
+      'Data',
+      'Aberto Em',
+      'Observações',
+    ];
+
+    async function loadCards() {
+      const loading = document.getElementById('loading');
+      const table = document.getElementById('table');
+      const tbody = document.getElementById('tbody');
+      const empty = document.getElementById('empty');
+      const badge = document.getElementById('countBadge');
+
+      loading.style.display = 'flex';
+      table.style.display = 'none';
+      empty.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/cards');
+        const { items: cards } = await res.json();
+
+        loading.style.display = 'none';
+
+        if (!cards || cards.length === 0) {
+          empty.style.display = 'flex';
+          badge.textContent = '0';
+          return;
+        }
+
+        badge.textContent = cards.length;
+        tbody.innerHTML = '';
+
+        cards.forEach((card, i) => {
+          const tr = document.createElement('tr');
+          const f = card.fields || {};
+
+          // Row number
+          const tdNum = document.createElement('td');
+          tdNum.className = 'row-num';
+          tdNum.textContent = i + 1;
+          tr.appendChild(tdNum);
+
+          // List name
+          const tdList = document.createElement('td');
+          tdList.innerHTML = `<span class="list-tag">${esc(card.listName)}</span>`;
+          tr.appendChild(tdList);
+
+          // Data columns
+          COLUMNS.forEach((col) => {
+            const td = document.createElement('td');
+            const val = findField(f, col);
+            td.textContent = val;
+            td.title = val;
+            if (col === 'Observações') td.className = 'wrap';
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        table.style.display = '';
+      } catch (err) {
+        loading.style.display = 'none';
+        empty.style.display = 'flex';
+        empty.textContent = 'Erro ao carregar chamados.';
+      }
+    }
+
+    // Case-insensitive field lookup — handles slight naming variations
+    function findField(fields, key) {
+      const lower = key.toLowerCase();
+      for (const [k, v] of Object.entries(fields)) {
+        if (k.toLowerCase() === lower) return v;
+      }
+      return '';
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+
+    loadCards();
+  </script>
+</body>
+</html>

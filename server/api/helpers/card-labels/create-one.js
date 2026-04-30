@@ -79,6 +79,21 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    await sails.helpers.actions.createOne.with({
+      webhooks,
+      values: {
+        card: values.card,
+        type: Action.Types.ADD_LABEL_TO_CARD,
+        data: {
+          label: _.pick(values.label, ['id', 'name', 'color']),
+        },
+        user: inputs.actorUser,
+      },
+      project: inputs.project,
+      board: inputs.board,
+      list: inputs.list,
+    });
+
     return cardLabel;
   },
 };

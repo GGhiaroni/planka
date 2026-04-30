@@ -462,6 +462,107 @@ export const selectIsCurrentUserInCurrentCard = createSelector(
   },
 );
 
+// Distinct values of a given custom field name across all cards on the current board.
+// Returns sorted array (case-insensitive). Used by the autocomplete dropdown.
+export const selectClientFieldValues = createSelector(
+  orm,
+  ({ CustomField, CustomFieldValue }) => {
+    const fieldIds = CustomField.all()
+      .toRefArray()
+      .filter((f) => f.name === 'Cliente' || f.name === 'Nome Do Posto')
+      .map((f) => f.id);
+
+    if (fieldIds.length === 0) return [];
+
+    const set = new Set();
+    CustomFieldValue.all()
+      .toRefArray()
+      .forEach((cfv) => {
+        if (fieldIds.includes(cfv.customFieldId) && cfv.content) {
+          set.add(String(cfv.content));
+        }
+      });
+
+    return [...set].sort((a, b) => a.localeCompare(b));
+  },
+);
+
+export const selectTableDataForCards = createSelector(
+  orm,
+  (_, cardIds) => cardIds,
+  ({ Card, CustomFieldValue }, cardIds) => {
+    // Column key is the field NAME (not id) so identical fields across
+    // per-card groups collapse into a single column.
+    const columnMap = new Map();
+    const rows = [];
+
+    cardIds.forEach((cardId) => {
+      const cardModel = Card.withId(cardId);
+      if (!cardModel) return;
+
+      const groups = [];
+      cardModel
+        .getCustomFieldGroupsQuerySet()
+        .toModelArray()
+        .forEach((g) => groups.push(g));
+      if (cardModel.board) {
+        cardModel.board
+          .getCustomFieldGroupsQuerySet()
+          .toModelArray()
+          .forEach((g) => groups.push(g));
+      }
+
+      const row = {
+        id: cardId,
+        name: cardModel.name,
+        listId: cardModel.listId,
+        listName: cardModel.list ? cardModel.list.name : '',
+        listPosition: cardModel.list ? cardModel.list.position : 0,
+        createdAt: cardModel.createdAt,
+        labels: cardModel.labels
+          .toRefArray()
+          .map((l) => ({ id: l.id, name: l.name, color: l.color })),
+        fields: {},
+      };
+
+      groups.forEach((group) => {
+        group.getCustomFieldsModelArray().forEach((field) => {
+          const key = field.name;
+          if (!columnMap.has(key)) {
+            columnMap.set(key, {
+              key,
+              name: field.name,
+              position: field.position,
+              groupPosition: group.position,
+            });
+          }
+
+          const cfvId = buildCustomFieldValueId({
+            cardId,
+            customFieldGroupId: group.id,
+            customFieldId: field.id,
+          });
+          const cfv = CustomFieldValue.withId(cfvId);
+          row.fields[key] = {
+            value: cfv && cfv.content != null ? cfv.content : '',
+            groupId: group.id,
+            fieldId: field.id,
+          };
+        });
+      });
+
+      rows.push(row);
+    });
+
+    const columns = [...columnMap.values()].sort((a, b) => {
+      if (a.groupPosition !== b.groupPosition) return a.groupPosition - b.groupPosition;
+      return a.position - b.position;
+    });
+
+    return { columns, rows };
+  },
+);
+
 export default {
   makeSelectCardById,
   selectCardById,
@@ -495,4 +596,6 @@ export default {
   selectCommentIdsForCurrentCard,
   selectActivityIdsForCurrentCard,
   selectIsCurrentUserInCurrentCard,
+  selectTableDataForCards,
+  selectClientFieldValues,
 };

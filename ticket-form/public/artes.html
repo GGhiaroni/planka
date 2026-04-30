@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedido de Artes</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+      color: #222;
+    }
+
+    .page-header {
+      max-width: 680px;
+      margin: 0 auto 24px;
+    }
+
+    .page-header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #1a1a2e;
+    }
+
+    .page-header p {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      color: #4f6bed;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+      max-width: 680px;
+      margin: 0 auto 20px;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #4f6bed;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eef0fb;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 560px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .section { padding: 20px 18px; }
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    label .req { color: #e53e3e; margin-left: 2px; }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      padding: 9px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.93rem;
+      font-family: inherit;
+      color: #222;
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #4f6bed;
+    }
+
+    textarea { resize: vertical; min-height: 100px; }
+
+    /* Radio group */
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-top: 2px;
+    }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+      color: #333;
+    }
+
+    .radio-group input[type="radio"] {
+      width: 16px; height: 16px;
+      accent-color: #4f6bed;
+      cursor: pointer;
+    }
+
+    /* Serviços grid */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+    }
+
+    @media (max-width: 560px) {
+      .services-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .service-item { display: flex; flex-direction: column; gap: 4px; }
+
+    .service-item span {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #444;
+    }
+
+    /* Submit area */
+    .submit-section {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background: #4f6bed;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    button[type="submit"]:hover:not(:disabled) { background: #3a56d4; }
+
+    button[type="submit"]:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #message {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 9px;
+      font-size: 0.92rem;
+      display: none;
+    }
+
+    #message.error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+      display: block;
+      animation: shake .4s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    /* Loading spinner inside button */
+    .btn-loading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Success overlay */
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      background: #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn .4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .success-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 48px 40px;
+      text-align: center;
+      max-width: 460px;
+      width: 90%;
+      animation: slideUp .5s cubic-bezier(.22,.68,0,1.1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      animation: popIn .5s cubic-bezier(.22,.68,0,1.3) .2s both;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0); }
+      to { transform: scale(1); }
+    }
+
+    .success-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: #fff;
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .success-icon svg path {
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: drawCheck .4s ease .5s forwards;
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .success-card h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    .success-card p {
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .btn-new {
+      display: inline-block;
+      padding: 12px 32px;
+      background: #4f6bed;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .btn-new:hover { background: #3a56d4; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <a href="/" class="back-link">← Voltar</a>
+    <h1>Formulário — Pedido de Artes</h1>
+    <p>Preencha todos os campos para abrir o chamado de pedido de arte no LED.</p>
+  </div>
+
+  <form id="form">
+
+    <!-- IDENTIFICAÇÃO -->
+    <div class="section">
+      <div class="section-title">Identificação do Posto</div>
+      <div class="grid-2">
+        <div class="field full">
+          <label>Nome do Posto <span class="req">*</span></label>
+          <input type="text" name="NOME DO POSTO" required />
+        </div>
+        <div class="field">
+          <label>Bandeira <span class="req">*</span></label>
+          <select name="BANDEIRA" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option>SHELL</option>
+            <option>PETROBRAS</option>
+            <option>IPIRANGA</option>
+            <option>ALE</option>
+            <option>PETRONAS</option>
+            <option>RODOIL</option>
+            <option>BANDEIRA BRANCA</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cidade <span class="req">*</span></label>
+          <input type="text" name="CIDADE" required />
+        </div>
+        <div class="field">
+          <label>Estado <span class="req">*</span></label>
+          <input type="text" name="ESTADO" placeholder="Ex: SP" required />
+        </div>
+        <div class="field">
+          <label>Nome do Responsável</label>
+          <input type="text" name="NOME RESPONSÁVEL" />
+        </div>
+        <div class="field">
+          <label>Telefone do Responsável</label>
+          <input type="tel" name="TLEFONE RESPONSÁVEL" id="telefone" placeholder="(00) 00000-0000" maxlength="15" />
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUIPAMENTO -->
+    <div class="section">
+      <div class="section-title">Equipamento</div>
+      <div class="grid-2">
+        <div class="field full">
+          <label>Equipamento</label>
+          <input type="text" name="EQUIPAMENTO" />
+        </div>
+        <div class="field">
+          <label>Previsão da Instalação</label>
+          <input type="date" name="PREVISÃO DA INSTALAÇÃO" />
+        </div>
+        <div class="field">
+          <label>Medida do LED</label>
+          <input type="text" name="MEDIDA DO LED" placeholder="Ex: 3x2" />
+        </div>
+        <div class="field">
+          <label>Tipo LED <span class="req">*</span></label>
+          <select name="TIPO LED" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option>P5 OUTDOOR</option>
+            <option>P3.9 OUTDOOR</option>
+            <option>P3.9 INDOOR</option>
+            <option>P2.5 OUTDOOR</option>
+            <option>P2.5 INDOOR</option>
+            <option>P1 INDOOR</option>
+            <option>P1 OUTDOOR</option>
+            <option>OUTROS</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tipo de Negociação <span class="req">*</span></label>
+          <select name="TIPO DE NEGOCIAÇÃO" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option>VENDA</option>
+            <option>LOCAÇÃO</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVIÇOS -->
+    <div class="section">
+      <div class="section-title">Serviços do Posto</div>
+      <div class="services-grid">
+        <div class="service-item">
+          <span>Loja Conveniência</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TEM LOJA CONVENIÊNCIA" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TEM LOJA CONVENIÊNCIA" value="Não" /> Não</label>
+          </div>
+        </div>
+        <div class="service-item">
+          <span>Troca de Óleo</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TROCA DE ÓLEO" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TROCA DE ÓLEO" value="Não" /> Não</label>
+          </div>
+        </div>
+        <div class="service-item">
+          <span>Lava Jato</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TEM LAVA JATO" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TEM LAVA JATO" value="Não" /> Não</label>
+          </div>
+        </div>
+        <div class="service-item">
+          <span>Gelo Filtrado</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TEM GELO FILTRADO" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TEM GELO FILTRADO" value="Não" /> Não</label>
+          </div>
+        </div>
+        <div class="service-item">
+          <span>Padaria</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TEM PADARIA" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TEM PADARIA" value="Não" /> Não</label>
+          </div>
+        </div>
+        <div class="service-item">
+          <span>Carvão</span>
+          <div class="radio-group">
+            <label><input type="radio" name="TEM CARVÃO" value="Sim" /> Sim</label>
+            <label><input type="radio" name="TEM CARVÃO" value="Não" /> Não</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMBUSTÍVEIS -->
+    <div class="section">
+      <div class="section-title">Preços dos Combustíveis</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Gasolina Comum</label>
+          <input type="text" name="PREÇO GASOLINA COMUM" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>Gasolina Aditivada</label>
+          <input type="text" name="PREÇO GASOLINA ADITIVADA" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>Gasolina Pódium</label>
+          <input type="text" name="GASOINA PODIUM" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>Etanol</label>
+          <input type="text" name="PREÇO ETANOL" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>Diesel</label>
+          <input type="text" name="PREÇO DIESEL" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>Diesel S10</label>
+          <input type="text" name="PREÇO DIESEL S 10" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>ARLA</label>
+          <input type="text" name="ARLA" placeholder="R$ 0,00" />
+        </div>
+        <div class="field">
+          <label>GNV</label>
+          <input type="text" name="PREÇO GNV" placeholder="R$ 0,00" />
+        </div>
+      </div>
+    </div>
+
+    <!-- COMERCIAL -->
+    <div class="section">
+      <div class="section-title">Comercial</div>
+      <div class="grid-2">
+        <div class="field full">
+          <label>Rodar Comercial PDVIEW no Loop?</label>
+          <div class="radio-group">
+            <label><input type="radio" name="RODAR COMERCIAL PDVIEW NO LOOP" value="SIM" /> SIM</label>
+            <label><input type="radio" name="RODAR COMERCIAL PDVIEW NO LOOP" value="NÃO" /> NÃO</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Vendedor <span class="req">*</span></label>
+          <select name="VENDEDOR" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option>MELLO</option>
+            <option>PRISCILA</option>
+            <option>MARILYN</option>
+            <option>THIAGO</option>
+            <option>MARCIO</option>
+            <option>EDUARDO</option>
+            <option>FABRICIO</option>
+            <option>OUTROS</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Data <span class="req">*</span></label>
+          <input type="date" name="DATA" required />
+        </div>
+      </div>
+    </div>
+
+    <!-- OBSERVAÇÕES -->
+    <div class="section">
+      <div class="section-title">Observações</div>
+      <div class="field">
+        <label>Observações</label>
+        <textarea name="OBSERVAÇÕES" placeholder="Informações adicionais..."></textarea>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-section">
+      <button type="submit" id="submitBtn">Enviar Pedido</button>
+      <div id="message" role="alert" aria-live="polite"></div>
+    </div>
+
+  </form>
+
+  <script>
+    // Pre-fill today's date
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('[name="DATA"]').value = today;
+
+    const form = document.getElementById('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageEl = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearMessage();
+
+      const data = {};
+      const elements = form.elements;
+
+      for (const el of elements) {
+        if (!el.name || el.disabled) continue;
+        if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) continue;
+        if (el.value !== '') data[el.name] = el.value;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="btn-loading"><span class="spinner"></span> Enviando...</span>';
+
+      try {
+        const res = await fetch('/api/gforms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const body = await res.json();
+
+        if (res.ok && body.ok) {
+          showSuccess();
+        } else {
+          showError(body.error || 'Erro inesperado. Tente novamente.');
+        }
+      } catch {
+        showError('Falha na conexão. Verifique sua internet e tente novamente.');
+      }
+    });
+
+    function showSuccess() {
+      const overlay = document.createElement('div');
+      overlay.className = 'success-overlay';
+      overlay.innerHTML = `
+        <div class="success-card">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <h2>Pedido enviado!</h2>
+          <p>O card foi criado no board e o time de artes já pode visualizar a demanda.</p>
+          <button class="btn-new" onclick="location.reload()">Enviar outro pedido</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    function showError(msg) {
+      messageEl.className = 'error';
+      messageEl.innerHTML = '<strong>Erro:</strong> ' + msg;
+      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar Pedido';
+    }
+
+    function clearMessage() {
+      messageEl.className = '';
+      messageEl.innerHTML = '';
+    }
+
+    // Máscara de telefone: (DD) 9XXXX-XXXX
+    document.getElementById('telefone').addEventListener('input', function (e) {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 6) {
+        v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+      } else if (v.length > 2) {
+        v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+      } else if (v.length > 0) {
+        v = `(${v}`;
+      }
+      e.target.value = v;
+    });
+  </script>
+</body>
+</html>

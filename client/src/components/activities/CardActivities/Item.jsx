@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Comment } from 'semantic-ui-react';
 
 import selectors from '../../../selectors';
@@ -16,6 +16,21 @@ import TimeAgo from '../../common/TimeAgo';
 import UserAvatar from '../../users/UserAvatar';
 
 import styles from './Item.module.scss';
+
+const ACTIVITY_EMOJI = {
+  [ActivityTypes.CREATE_CARD]: '🆕',
+  [ActivityTypes.MOVE_CARD]: '➡️',
+  [ActivityTypes.ADD_MEMBER_TO_CARD]: '👤',
+  [ActivityTypes.REMOVE_MEMBER_FROM_CARD]: '👋',
+  [ActivityTypes.COMPLETE_TASK]: '✅',
+  [ActivityTypes.UNCOMPLETE_TASK]: '↩️',
+  [ActivityTypes.UPDATE_CARD_NAME]: '✏️',
+  [ActivityTypes.UPDATE_CARD_DESCRIPTION]: '📝',
+  [ActivityTypes.UPDATE_CARD_DUE_DATE]: '📅',
+  [ActivityTypes.ADD_LABEL_TO_CARD]: '🏷️',
+  [ActivityTypes.REMOVE_LABEL_FROM_CARD]: '🏷️',
+  [ActivityTypes.UPDATE_CUSTOM_FIELD_VALUE]: '🔄',
+};
 
 const Item = React.memo(({ id }) => {
   const selectActivityById = useMemo(() => selectors.makeSelectActivityById(), []);
@@ -27,151 +42,154 @@ const Item = React.memo(({ id }) => {
   const [t] = useTranslation();
 
   const userName = isUserStatic(user)
-    ? t(`common.${user.name}`, {
-        context: 'title',
-      })
+    ? t(`common.${user.name}`, { context: 'title' })
     : user.name;
 
-  let contentNode;
+  // Build the action description (no author — that's rendered separately).
+  let descriptionNode = null;
   switch (activity.type) {
     case ActivityTypes.CREATE_CARD: {
       const { list } = activity.data;
       const listName = list.name || t(`common.${list.type}`);
-
-      contentNode = (
-        <Trans
-          i18nKey="common.userAddedThisCardToList"
-          values={{
-            user: userName,
-            list: listName,
-          }}
-        >
-          <span className={styles.author}>{userName}</span>
-          {' added this card to '}
-          {listName}
-        </Trans>
+      descriptionNode = (
+        <>
+          adicionou este cartão a <strong>{listName}</strong>
+        </>
       );
-
       break;
     }
     case ActivityTypes.MOVE_CARD: {
       const { fromList, toList } = activity.data;
-
       const fromListName = fromList.name || t(`common.${fromList.type}`);
       const toListName = toList.name || t(`common.${toList.type}`);
-
-      contentNode = (
-        <Trans
-          i18nKey="common.userMovedThisCardFromListToList"
-          values={{
-            user: userName,
-            fromList: fromListName,
-            toList: toListName,
-          }}
-        >
-          <span className={styles.author}>{userName}</span>
-          {' moved this card from '}
-          {fromListName}
-          {' to '}
-          {toListName}
-        </Trans>
+      descriptionNode = (
+        <>
+          moveu este cartão de <strong>{fromListName}</strong> para <strong>{toListName}</strong>
+        </>
       );
-
       break;
     }
     case ActivityTypes.ADD_MEMBER_TO_CARD:
-      contentNode =
+      descriptionNode =
         user.id === activity.data.user.id ? (
-          <Trans
-            i18nKey="common.userJoinedThisCard"
-            values={{
-              user: userName,
-            }}
-          >
-            <span className={styles.author}>{userName}</span>
-            {' joined this card'}
-          </Trans>
+          <>entrou neste cartão</>
         ) : (
-          <Trans
-            i18nKey="common.userAddedUserToThisCard"
-            values={{
-              actorUser: userName,
-              addedUser: activity.data.user.name,
-            }}
-          >
-            <span className={styles.author}>{userName}</span>
-            {' added '}
-            {activity.data.user.name}
-            {' to this card'}
-          </Trans>
+          <>
+            adicionou <strong>{activity.data.user.name}</strong> a este cartão
+          </>
         );
-
       break;
     case ActivityTypes.REMOVE_MEMBER_FROM_CARD:
-      contentNode =
+      descriptionNode =
         user.id === activity.data.user.id ? (
-          <Trans
-            i18nKey="common.userLeftThisCard"
-            values={{
-              user: userName,
-            }}
-          >
-            <span className={styles.author}>{userName}</span>
-            {' left this card'}
-          </Trans>
+          <>saiu deste cartão</>
         ) : (
-          <Trans
-            i18nKey="common.userRemovedUserFromThisCard"
-            values={{
-              actorUser: userName,
-              removedUser: activity.data.user.name,
-            }}
-          >
-            <span className={styles.author}>{userName}</span>
-            {' removed '}
-            {activity.data.user.name}
-            {' from this card'}
-          </Trans>
+          <>
+            removeu <strong>{activity.data.user.name}</strong> deste cartão
+          </>
         );
-
       break;
     case ActivityTypes.COMPLETE_TASK:
-      contentNode = (
-        <Trans
-          i18nKey="common.userCompletedTaskOnThisCard"
-          values={{
-            user: userName,
-            task: activity.data.task.name,
-          }}
-        >
-          <span className={styles.author}>{userName}</span>
-          {' completed '}
-          {activity.data.task.name}
-          {' on this card'}
-        </Trans>
+      descriptionNode = (
+        <>
+          concluiu a tarefa <strong>{activity.data.task.name}</strong>
+        </>
       );
-
       break;
     case ActivityTypes.UNCOMPLETE_TASK:
-      contentNode = (
-        <Trans
-          i18nKey="common.userMarkedTaskIncompleteOnThisCard"
-          values={{
-            user: userName,
-            task: activity.data.task.name,
-          }}
-        >
-          <span className={styles.author}>{userName}</span>
-          {' marked '}
-          {activity.data.task.name}
-          {' incomplete on this card'}
-        </Trans>
+      descriptionNode = (
+        <>
+          marcou a tarefa <strong>{activity.data.task.name}</strong> como pendente
+        </>
       );
-
       break;
+    case ActivityTypes.UPDATE_CARD_NAME: {
+      const { fromName, toName } = activity.data;
+      descriptionNode = (
+        <>
+          renomeou o card de <strong>"{fromName}"</strong> para <strong>"{toName}"</strong>
+        </>
+      );
+      break;
+    }
+    case ActivityTypes.UPDATE_CARD_DESCRIPTION: {
+      const { hasContent } = activity.data;
+      descriptionNode = hasContent ? (
+        <>atualizou a descrição do card</>
+      ) : (
+        <>removeu a descrição do card</>
+      );
+      break;
+    }
+    case ActivityTypes.UPDATE_CARD_DUE_DATE: {
+      const { fromDueDate, toDueDate } = activity.data;
+      const fmt = (d) =>
+        d ? new Date(d).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
+      if (!toDueDate) {
+        descriptionNode = <>removeu a data de vencimento</>;
+      } else if (!fromDueDate) {
+        descriptionNode = (
+          <>
+            definiu a data de vencimento como <strong>{fmt(toDueDate)}</strong>
+          </>
+        );
+      } else {
+        descriptionNode = (
+          <>
+            alterou a data de vencimento de <strong>{fmt(fromDueDate)}</strong> para{' '}
+            <strong>{fmt(toDueDate)}</strong>
+          </>
+        );
+      }
+      break;
+    }
+    case ActivityTypes.ADD_LABEL_TO_CARD: {
+      const { label } = activity.data;
+      descriptionNode = (
+        <>
+          adicionou a etiqueta <strong>"{label.name}"</strong> ao card
+        </>
+      );
+      break;
+    }
+    case ActivityTypes.REMOVE_LABEL_FROM_CARD: {
+      const { label } = activity.data;
+      descriptionNode = (
+        <>
+          removeu a etiqueta <strong>"{label.name}"</strong> do card
+        </>
+      );
+      break;
+    }
+    case ActivityTypes.UPDATE_CUSTOM_FIELD_VALUE: {
+      const { customField, fromContent, toContent } = activity.data;
+      const display = (v) =>
+        v == null || v === '' ? <em>(vazio)</em> : <strong>"{String(v)}"</strong>;
+      descriptionNode = (
+        <>
+          alterou <strong>{customField.name}</strong> de {display(fromContent)} para{' '}
+          {display(toContent)}
+        </>
+      );
+      break;
+    }
     default:
-      contentNode = null;
+      descriptionNode = null;
   }
+
+  if (!descriptionNode) return null;
+
+  const emoji = ACTIVITY_EMOJI[activity.type] || '•';
+  const absoluteTime = activity.createdAt
+    ? new Date(activity.createdAt).toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
 
   return (
     <Comment>
@@ -179,9 +197,16 @@ const Item = React.memo(({ id }) => {
         <UserAvatar id={activity.userId} />
       </span>
       <div className={styles.content}>
-        <div>{contentNode}</div>
+        <div className={styles.activityLine}>
+          <span className={styles.author}>{userName}</span>
+          <span className={styles.emoji} aria-hidden="true">
+            {emoji}
+          </span>
+          <span className={styles.description}>{descriptionNode}</span>
+        </div>
         <span className={styles.date}>
           <TimeAgo date={activity.createdAt} />
+          {absoluteTime && <span className={styles.absoluteDate}>{absoluteTime}</span>}
         </span>
       </div>
     </Comment>

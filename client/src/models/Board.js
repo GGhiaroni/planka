@@ -330,6 +330,16 @@ export default class extends BaseModel {
     }
 
     if (this.search) {
+      // Helper: collect all custom field values for a card as a single
+      // searchable lowercase string. Used to make the search match by
+      // Cliente, OS Nº, Bandeira and any other custom field content.
+      const cfvText = (cardModel) =>
+        cardModel.customFieldValues
+          .toRefArray()
+          .map((cfv) => (cfv.content == null ? '' : String(cfv.content)))
+          .join(' ')
+          .toLowerCase();
+
       if (this.search.startsWith('/')) {
         let searchRegex;
         try {
@@ -341,7 +351,8 @@ export default class extends BaseModel {
         cardModels = cardModels.filter(
           (cardModel) =>
             searchRegex.test(cardModel.name) ||
-            (cardModel.description && searchRegex.test(cardModel.description)),
+            (cardModel.description && searchRegex.test(cardModel.description)) ||
+            searchRegex.test(cfvText(cardModel)),
         );
       } else {
         const searchParts = buildSearchParts(this.search);
@@ -349,10 +360,13 @@ export default class extends BaseModel {
         cardModels = cardModels.filter((cardModel) => {
           const name = cardModel.name.toLowerCase();
           const description = cardModel.description && cardModel.description.toLowerCase();
+          const fields = cfvText(cardModel);
 
           return searchParts.every(
             (searchPart) =>
-              name.includes(searchPart) || (description && description.includes(searchPart)),
+              name.includes(searchPart) ||
+              (description && description.includes(searchPart)) ||
+              fields.includes(searchPart),
           );
         });
       }

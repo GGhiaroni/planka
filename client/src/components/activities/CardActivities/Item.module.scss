@@ -19,9 +19,35 @@
     word-wrap: break-word;
   }
 
+  .activityLine {
+    display: inline;
+  }
+
+  .emoji {
+    display: inline-block;
+    margin: 0 8px 0 6px;
+    font-size: 14px;
+    vertical-align: baseline;
+    line-height: 1;
+  }
+
+  .description {
+    color: #17394d;
+  }
+
   .date {
     color: #6b808c;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .absoluteDate {
+    color: #97a8b3;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
   }
 
   .user {
