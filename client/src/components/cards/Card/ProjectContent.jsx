@@ -112,6 +112,13 @@ const ProjectContent = React.memo(({ cardId }) => {
     [cardId, card.stopwatch, dispatch],
   );
 
+  const handleLabelRemove = useCallback(
+    (labelId) => {
+      dispatch(entryActions.removeLabelFromCard(labelId, cardId));
+    },
+    [cardId, dispatch],
+  );
+
   const hasInformation =
     card.description ||
     card.dueDate ||
@@ -158,7 +165,7 @@ const ProjectContent = React.memo(({ cardId }) => {
         <span className={classNames(styles.labels, !isCompact && styles.labelsFull)}>
           {labelIds.map((labelId) => (
             <span key={labelId} className={classNames(styles.attachment, styles.attachmentLeft)}>
-              <LabelChip id={labelId} size="tiny" />
+              <LabelChip id={labelId} size="tiny" onRemove={() => handleLabelRemove(labelId)} />
             </span>
           ))}
         </span>

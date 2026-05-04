@@ -89,7 +89,7 @@ const InlineContent = React.memo(({ cardId }) => {
         </span>
       )}
       {labelIds.length > 0 && (
-        <span className={classNames(styles.attachments, styles.hidable)}>
+        <span className={styles.attachments}>
           {labelIds.map((labelId) => (
             <span key={labelId} className={classNames(styles.attachment, styles.attachmentLeft)}>
               <LabelChip id={labelId} size="tiny" onRemove={() => handleLabelRemove(labelId)} />

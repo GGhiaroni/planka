@@ -3,13 +3,14 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { shallowEqual, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { Icon } from 'semantic-ui-react';
 
 import selectors from '../../../selectors';
+import entryActions from '../../../entry-actions';
 import markdownToText from '../../../utils/markdown-to-text';
 import { BoardViews } from '../../../constants/Enums';
 import TimeAgo from '../../common/TimeAgo';
@@ -72,6 +73,15 @@ const StoryContent = React.memo(({ cardId }) => {
     [card.description],
   );
 
+  const dispatch = useDispatch();
+
+  const handleLabelRemove = useCallback(
+    (labelId) => {
+      dispatch(entryActions.removeLabelFromCard(labelId, cardId));
+    },
+    [cardId, dispatch],
+  );
+
   return (
     <>
       {coverUrl && (
@@ -84,7 +94,7 @@ const StoryContent = React.memo(({ cardId }) => {
           <span className={styles.labels}>
             {labelIds.map((labelId) => (
               <span key={labelId} className={classNames(styles.attachment, styles.attachmentLeft)}>
-                <LabelChip id={labelId} size="tiny" />
+                <LabelChip id={labelId} size="tiny" onRemove={() => handleLabelRemove(labelId)} />
               </span>
             ))}
           </span>
