@@ -131,6 +131,30 @@
     }
   }
 
+  .collapseButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    box-shadow: none;
+    color: #798d99;
+    cursor: pointer;
+    height: 32px;
+    line-height: 32px;
+    margin: 0;
+    outline: none;
+    padding: 0;
+    position: absolute;
+    right: 36px;
+    text-align: center;
+    top: 4px;
+    width: 32px;
+
+    &:hover {
+      background: rgba(9, 30, 66, 0.13);
+      color: #516b7a;
+    }
+  }
+
   .headerIcon {
     color: #798d99;
     position: absolute;
@@ -175,5 +199,92 @@
 
   .outerWrapperWithFavorites {
     max-height: calc(100vh - 288px);
+  }
+
+  /* Collapsed list */
+
+  .innerWrapperCollapsed {
+    width: 44px;
+  }
+
+  .outerWrapperCollapsed {
+    height: 280px;
+    max-height: 280px;
+  }
+
+  .collapsedHeader {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    outline: none;
+    padding: 10px 4px 12px;
+    user-select: none;
+  }
+
+  .collapsedHeader:hover {
+    background: rgba(9, 30, 66, 0.06);
+  }
+
+  .collapsedTypeIcon {
+    color: #798d99;
+    margin: 0 !important;
+  }
+
+  .collapsedName {
+    color: #17394d;
+    flex: 1;
+    font-weight: bold;
+    line-height: 1.2;
+    max-height: 200px;
+    overflow: hidden;
+    padding: 4px 0;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .collapsedCount {
+    align-items: center;
+    background: rgba(9, 30, 66, 0.13);
+    border-radius: 999px;
+    color: #17394d;
+    display: flex;
+    font-size: 12px;
+    font-weight: bold;
+    height: 22px;
+    justify-content: center;
+    min-width: 22px;
+    padding: 0 6px;
+  }
+
+  .cardsInnerWrapperCollapsed {
+    flex: 0 0 0;
+    height: 0 !important;
+    overflow: hidden;
+    width: 44px !important;
+
+    &:hover {
+      width: 44px !important;
+    }
+
+    .cards {
+      height: 0;
+      overflow: hidden;
+    }
+
+    .cards > * {
+      visibility: hidden;
+    }
+  }
+
+  .cardsOuterWrapperCollapsed {
+    padding: 0;
+    width: 44px;
   }
 }
