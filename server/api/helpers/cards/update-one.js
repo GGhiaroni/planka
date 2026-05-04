@@ -330,13 +330,54 @@ module.exports = {
             board: inputs.board,
             list: values.list,
           });
+
+          if (values.list.labelId) {
+            const targetLabel = await Label.qm.getOneById(values.list.labelId);
+
+            if (targetLabel) {
+              if (values.list.type === List.Types.STATUS) {
+                const existingCardLabels = await CardLabel.qm.getByCardId(card.id);
+
+                // eslint-disable-next-line no-restricted-syntax
+                for (const cardLabel of existingCardLabels) {
+                  if (cardLabel.labelId === targetLabel.id) {
+                    // eslint-disable-next-line no-continue
+                    continue;
+                  }
+
+                  // eslint-disable-next-line no-await-in-loop
+                  await sails.helpers.cardLabels.deleteOne.with({
+                    record: cardLabel,
+                    project: inputs.project,
+                    board: inputs.board,
+                    list: values.list,
+                    card,
+                    actorUser: inputs.actorUser,
+                    request: inputs.request,
+                  });
+                }
+              }
+
+              try {
+                await sails.helpers.cardLabels.createOne.with({
+                  project: inputs.project,
+                  board: inputs.board,
+                  list: values.list,
+                  values: { card, label: targetLabel },
+                  actorUser: inputs.actorUser,
+                  request: inputs.request,
+                });
+              } catch (error) {
+                if (error !== 'labelAlreadyInCard') {
+                  throw error;
+                }
+              }
+            }
+          }
         }
 
         // Log card name change
-        if (
-          !_.isUndefined(values.name) &&
-          values.name !== inputs.record.name
-        ) {
+        if (!_.isUndefined(values.name) && values.name !== inputs.record.name) {
           await sails.helpers.actions.createOne.with({
             webhooks,
             values: {

@@ -124,6 +124,11 @@ export default {
         'Os cartões nesta lista estão completos e prontos para serem arquivados.',
       cardsOnThisListAreReadyToBeWorkedOn:
         'Os cartões nesta lista estão prontos para serem trabalhados.',
+      cardsOnThisListReceiveCategoryLabel:
+        'Cartões adicionados ou movidos para cá ganham automaticamente um rótulo com o nome da lista.',
+      cardsOnThisListGetTheirLabelsReplaced:
+        'Cartões adicionados ou movidos para cá ficam apenas com o rótulo desta lista (os demais são removidos).',
+      category: 'Categoria',
       clickHereOrRefreshPageToUpdate: '<0>Clique aqui</0> ou atualize a página para atualizar.',
       clientHostnameInEhlo: 'Nome do host do cliente no EHLO',
       closed: 'Fechado',
@@ -501,6 +506,7 @@ export default {
       showMore: 'Mostrar mais',
       sortList_title: 'Ordenar lista',
       start: 'Iniciar',
+      status: 'Status',
       stop: 'Parar',
       subscribe: 'Inscrever-se',
       unlinkSso: 'Desvincular SSO',

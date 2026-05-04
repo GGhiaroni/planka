@@ -12,6 +12,7 @@
     "db:upgrade": "node db/upgrade.js",
     "postinstall": "patch-package && npm run setup-python",
     "lint": "eslint . --max-warnings=0 --report-unused-disable-directives && echo '✔  Your .js files look good.'",
+    "lint:files": "eslint --max-warnings=0 --report-unused-disable-directives",
     "setup-python": "node setup-python.js",
     "start": "nodemon",
     "start:prod": "cross-env NODE_ENV=production node app.js --prod",

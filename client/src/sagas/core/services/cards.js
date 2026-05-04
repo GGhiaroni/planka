@@ -166,6 +166,15 @@ export function* createCard(listId, data, index, autoOpen) {
 
   yield put(actions.createCard.success(localId, card));
 
+  if (list.labelId) {
+    yield put(
+      actions.handleLabelToCardAdd({
+        cardId: card.id,
+        labelId: list.labelId,
+      }),
+    );
+  }
+
   if (watchForCreateCardActionTask && watchForCreateCardActionTask.isRunning()) {
     yield call(goToCard, card.id);
   }
@@ -279,6 +288,35 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  if (data.listId) {
+    const list = yield select(selectors.selectListById, data.listId);
+
+    if (list && list.labelId) {
+      if (list.type === ListTypes.STATUS) {
+        const existingLabelIds = yield select(selectors.selectLabelIdsByCardId, id);
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const labelId of existingLabelIds) {
+          if (labelId !== list.labelId) {
+            yield put(
+              actions.handleLabelFromCardRemove({
+                cardId: id,
+                labelId,
+              }),
+            );
+          }
+        }
+      }
+
+      yield put(
+        actions.handleLabelToCardAdd({
+          cardId: id,
+          labelId: list.labelId,
+        }),
+      );
+    }
+  }
 }
 
 export function* updateCurrentCard(data) {

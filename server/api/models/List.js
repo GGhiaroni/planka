@@ -71,6 +71,8 @@
 
 const Types = {
   ACTIVE: 'active',
+  CATEGORY: 'category',
+  STATUS: 'status',
   CLOSED: 'closed',
   ARCHIVE: 'archive',
   TRASH: 'trash',
@@ -93,12 +95,16 @@ const SortOrders = {
   DESC: 'desc',
 };
 
-const FINITE_TYPES = [Types.ACTIVE, Types.CLOSED];
+const FINITE_TYPES = [Types.ACTIVE, Types.CATEGORY, Types.STATUS, Types.CLOSED];
 
-const KANBAN_TYPES = [Types.ACTIVE, Types.CLOSED];
+const KANBAN_TYPES = [Types.ACTIVE, Types.CATEGORY, Types.STATUS, Types.CLOSED];
+
+const LABEL_LINKED_TYPES = [Types.CATEGORY, Types.STATUS];
 
 const TYPE_STATE_BY_TYPE = {
   [Types.ACTIVE]: TypeStates.OPENED,
+  [Types.CATEGORY]: TypeStates.OPENED,
+  [Types.STATUS]: TypeStates.OPENED,
   [Types.CLOSED]: Types.CLOSED,
 };
 
@@ -122,6 +128,7 @@ module.exports = {
   SortOrders,
   FINITE_TYPES,
   KANBAN_TYPES,
+  LABEL_LINKED_TYPES,
   TYPE_STATE_BY_TYPE,
   COLORS,
 
@@ -162,6 +169,10 @@ module.exports = {
       model: 'Board',
       required: true,
       columnName: 'board_id',
+    },
+    labelId: {
+      model: 'Label',
+      columnName: 'label_id',
     },
     cards: {
       collection: 'Card',

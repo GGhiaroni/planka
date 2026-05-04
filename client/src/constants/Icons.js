@@ -65,6 +65,8 @@ export const BoardMembershipRoleIcons = {
 
 export const ListTypeIcons = {
   [ListTypes.ACTIVE]: 'lightbulb',
+  [ListTypes.CATEGORY]: 'tags',
+  [ListTypes.STATUS]: 'signal',
   [ListTypes.CLOSED]: 'flag checkered',
   [ListTypes.ARCHIVE]: 'archive',
   [ListTypes.TRASH]: 'trash alternate',

@@ -16,8 +16,14 @@ import styles from './SelectListTypeStep.module.scss';
 
 const DESCRIPTION_BY_TYPE = {
   [ListTypes.ACTIVE]: 'common.cardsOnThisListAreReadyToBeWorkedOn',
+  [ListTypes.CATEGORY]: 'common.cardsOnThisListReceiveCategoryLabel',
+  [ListTypes.STATUS]: 'common.cardsOnThisListGetTheirLabelsReplaced',
   [ListTypes.CLOSED]: 'common.cardsOnThisListAreCompleteAndReadyToBeArchived',
 };
+
+const CREATE_TYPES = [ListTypes.ACTIVE, ListTypes.CATEGORY, ListTypes.STATUS, ListTypes.CLOSED];
+
+const EDIT_TYPES = [ListTypes.ACTIVE, ListTypes.CLOSED];
 
 const SelectListTypeStep = React.memo(
   ({ defaultValue, title, withButton, buttonContent, onSelect, onBack, onClose }) => {
@@ -47,6 +53,8 @@ const SelectListTypeStep = React.memo(
       onClose();
     }, [defaultValue, onSelect, onClose, value]);
 
+    const types = withButton ? EDIT_TYPES : CREATE_TYPES;
+
     return (
       <>
         <Popup.Header onBack={onBack}>
@@ -57,7 +65,7 @@ const SelectListTypeStep = React.memo(
         <Popup.Content>
           <Form onSubmit={handleSubmit}>
             <Menu secondary vertical className={styles.menu}>
-              {[ListTypes.ACTIVE, ListTypes.CLOSED].map((type) => (
+              {types.map((type) => (
                 <Menu.Item
                   key={type}
                   value={type}

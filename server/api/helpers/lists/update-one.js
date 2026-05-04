@@ -152,6 +152,24 @@ module.exports = {
 
     const { list, tasks } = await List.qm.updateOne(inputs.record.id, values);
 
+    if (
+      list &&
+      !_.isUndefined(values.name) &&
+      values.name !== inputs.record.name &&
+      inputs.record.labelId
+    ) {
+      const linkedLabel = await Label.qm.getOneById(inputs.record.labelId);
+      if (linkedLabel) {
+        await sails.helpers.labels.updateOne.with({
+          record: linkedLabel,
+          values: { name: values.name },
+          project: inputs.project,
+          board: inputs.board,
+          actorUser: inputs.actorUser,
+        });
+      }
+    }
+
     if (list) {
       if (values.board) {
         if (prevLabels.length > 0) {

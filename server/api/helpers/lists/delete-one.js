@@ -44,6 +44,18 @@ module.exports = {
 
     const list = await List.qm.deleteOne(inputs.record.id);
 
+    if (list && inputs.record.labelId) {
+      const linkedLabel = await Label.qm.getOneById(inputs.record.labelId);
+      if (linkedLabel) {
+        await sails.helpers.labels.deleteOne.with({
+          record: linkedLabel,
+          project: inputs.project,
+          board: inputs.board,
+          actorUser: inputs.actorUser,
+        });
+      }
+    }
+
     if (list) {
       sails.sockets.broadcast(
         `board:${list.boardId}`,

@@ -117,6 +117,11 @@ export default {
       cardsOnThisListAreCompleteAndReadyToBeArchived:
         'Cards on this list are complete and ready to be archived.',
       cardsOnThisListAreReadyToBeWorkedOn: 'Cards on this list are ready to be worked on.',
+      cardsOnThisListReceiveCategoryLabel:
+        'Cards added or moved here automatically receive a label with the list name.',
+      cardsOnThisListGetTheirLabelsReplaced:
+        'Cards added or moved here keep only this list label (any others are removed).',
+      category: 'Category',
       clickHereOrRefreshPageToUpdate: '<0>Click here</0> or refresh the page to update.',
       clientHostnameInEhlo: 'Client hostname in EHLO',
       closed: 'Closed',
@@ -490,6 +495,7 @@ export default {
       showMore: 'Show more',
       sortList_title: 'Sort List',
       start: 'Start',
+      status: 'Status',
       stop: 'Stop',
       subscribe: 'Subscribe',
       unlinkSso: 'Unlink SSO',

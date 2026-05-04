@@ -57,10 +57,33 @@ module.exports = {
       }
     }
 
+    let labelId;
+    if (List.LABEL_LINKED_TYPES.includes(values.type)) {
+      const existingLabels = await Label.qm.getByBoardId(values.board.id);
+      const lastPosition = existingLabels.reduce(
+        (max, label) => (label.position > max ? label.position : max),
+        0,
+      );
+
+      const label = await sails.helpers.labels.createOne.with({
+        project: inputs.project,
+        values: {
+          name: values.name,
+          color: _.sample(Label.COLORS),
+          position: lastPosition + 65536,
+          board: values.board,
+        },
+        actorUser: inputs.actorUser,
+      });
+
+      labelId = label.id;
+    }
+
     const list = await List.qm.createOne({
       ...values,
       position,
       boardId: values.board.id,
+      labelId,
     });
 
     sails.sockets.broadcast(

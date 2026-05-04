@@ -14,6 +14,8 @@ export const isUserAdminOrProjectOwner = (user) =>
 export const isListArchiveOrTrash = (list) =>
   [ListTypes.ARCHIVE, ListTypes.TRASH].includes(list.type);
 
-export const isListFinite = (list) => [ListTypes.ACTIVE, ListTypes.CLOSED].includes(list.type);
+export const isListFinite = (list) =>
+  [ListTypes.ACTIVE, ListTypes.CATEGORY, ListTypes.STATUS, ListTypes.CLOSED].includes(list.type);
 
-export const isListKanban = (list) => [ListTypes.ACTIVE, ListTypes.CLOSED].includes(list.type);
+export const isListKanban = (list) =>
+  [ListTypes.ACTIVE, ListTypes.CATEGORY, ListTypes.STATUS, ListTypes.CLOSED].includes(list.type);

@@ -3,13 +3,14 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from 'semantic-ui-react';
 
 import selectors from '../../../selectors';
+import entryActions from '../../../entry-actions';
 import markdownToText from '../../../utils/markdown-to-text';
 import { BoardViews } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
@@ -30,6 +31,15 @@ const InlineContent = React.memo(({ cardId }) => {
   const card = useSelector((state) => selectCardById(state, cardId));
   const list = useSelector((state) => selectListById(state, card.listId));
   const labelIds = useSelector((state) => selectLabelIdsByCardId(state, cardId));
+
+  const dispatch = useDispatch();
+
+  const handleLabelRemove = useCallback(
+    (labelId) => {
+      dispatch(entryActions.removeLabelFromCard(labelId, cardId));
+    },
+    [cardId, dispatch],
+  );
 
   const notificationsTotal = useSelector((state) =>
     selectNotificationsTotalByCardId(state, cardId),
@@ -82,7 +92,7 @@ const InlineContent = React.memo(({ cardId }) => {
         <span className={classNames(styles.attachments, styles.hidable)}>
           {labelIds.map((labelId) => (
             <span key={labelId} className={classNames(styles.attachment, styles.attachmentLeft)}>
-              <LabelChip id={labelId} size="tiny" />
+              <LabelChip id={labelId} size="tiny" onRemove={() => handleLabelRemove(labelId)} />
             </span>
           ))}
         </span>

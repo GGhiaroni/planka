@@ -67,6 +67,8 @@ export const BoardMembershipRoles = {
 
 export const ListTypes = {
   ACTIVE: 'active',
+  CATEGORY: 'category',
+  STATUS: 'status',
   CLOSED: 'closed',
   ARCHIVE: 'archive',
   TRASH: 'trash',

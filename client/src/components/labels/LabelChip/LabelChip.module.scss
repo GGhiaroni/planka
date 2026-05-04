@@ -56,4 +56,50 @@
     max-width: 230px;
     padding: 0 12px;
   }
+
+  /* Removable */
+
+  .removable {
+    display: inline-flex;
+    position: relative;
+    vertical-align: top;
+  }
+
+  .removeButton {
+    align-items: center;
+    background: rgba(0, 0, 0, 0.55);
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    cursor: pointer;
+    display: none;
+    height: 14px;
+    justify-content: center;
+    line-height: 1;
+    margin: 0;
+    opacity: 0;
+    padding: 0;
+    position: absolute;
+    right: -5px;
+    top: -5px;
+    transition: opacity 0.1s ease-in;
+    width: 14px;
+    z-index: 1;
+  }
+
+  .removable:hover .removeButton {
+    display: inline-flex;
+    opacity: 1;
+  }
+
+  .removeButton:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .removeIcon {
+    font-size: 10px;
+    height: auto;
+    margin: 0 !important;
+    width: auto;
+  }
 }
