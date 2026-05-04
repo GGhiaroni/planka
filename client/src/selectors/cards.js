@@ -464,28 +464,25 @@ export const selectIsCurrentUserInCurrentCard = createSelector(
 
 // Distinct values of a given custom field name across all cards on the current board.
 // Returns sorted array (case-insensitive). Used by the autocomplete dropdown.
-export const selectClientFieldValues = createSelector(
-  orm,
-  ({ CustomField, CustomFieldValue }) => {
-    const fieldIds = CustomField.all()
-      .toRefArray()
-      .filter((f) => f.name === 'Cliente' || f.name === 'Nome Do Posto')
-      .map((f) => f.id);
+export const selectClientFieldValues = createSelector(orm, ({ CustomField, CustomFieldValue }) => {
+  const fieldIds = CustomField.all()
+    .toRefArray()
+    .filter((f) => f.name === 'Cliente' || f.name === 'Nome Do Posto')
+    .map((f) => f.id);
 
-    if (fieldIds.length === 0) return [];
+  if (fieldIds.length === 0) return [];
 
-    const set = new Set();
-    CustomFieldValue.all()
-      .toRefArray()
-      .forEach((cfv) => {
-        if (fieldIds.includes(cfv.customFieldId) && cfv.content) {
-          set.add(String(cfv.content));
-        }
-      });
+  const set = new Set();
+  CustomFieldValue.all()
+    .toRefArray()
+    .forEach((cfv) => {
+      if (fieldIds.includes(cfv.customFieldId) && cfv.content) {
+        set.add(String(cfv.content));
+      }
+    });
 
-    return [...set].sort((a, b) => a.localeCompare(b));
-  },
-);
+  return [...set].sort((a, b) => a.localeCompare(b));
+});
 
 export const selectTableDataForCards = createSelector(
   orm,
@@ -518,6 +515,7 @@ export const selectTableDataForCards = createSelector(
         listId: cardModel.listId,
         listName: cardModel.list ? cardModel.list.name : '',
         listPosition: cardModel.list ? cardModel.list.position : 0,
+        position: cardModel.position ?? 0,
         createdAt: cardModel.createdAt,
         labels: cardModel.labels
           .toRefArray()

@@ -3,6 +3,8 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
+/* eslint-disable react/jsx-props-no-spreading, react-hooks/exhaustive-deps, no-shadow, jsx-a11y/label-has-associated-control, jsx-a11y/control-has-associated-label, react/no-unused-prop-types */
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
@@ -17,7 +19,7 @@ import styles from './TableView.module.scss';
 
 const PRIORITY_RANK = {
   'MÁXIMA PRIORIDADE': 1,
-  'URGÊNCIA': 2,
+  URGÊNCIA: 2,
   'PENDÊNCIAS DE INSTALAÇÃO': 3,
   'ATUALIZAÇÃO DO TRATAMENTO': 4,
   'EM TRATAMENTO': 5,
@@ -30,7 +32,7 @@ const PRIORITY_RANK = {
 const PRIORITY_CLASS = {
   'BAIXA PRIORIDADE': 'priorityBaixa',
   'MÉDIA GRAVIDADE': 'priorityMedia',
-  'URGÊNCIA': 'priorityUrgencia',
+  URGÊNCIA: 'priorityUrgencia',
   'EM TRATAMENTO': 'priorityTratamento',
   'ATUALIZAÇÃO DO TRATAMENTO': 'priorityAtualizacao',
   'PENDÊNCIAS DE INSTALAÇÃO': 'priorityPendencias',
@@ -56,11 +58,6 @@ const DATE_PRESETS = [
   { value: 'lastMonth', label: 'Mês anterior' },
   { value: 'custom', label: 'Personalizado...' },
 ];
-
-function rankForLabels(labels) {
-  if (!labels.length) return 999;
-  return Math.min(...labels.map((l) => PRIORITY_RANK[l.name] ?? 500));
-}
 
 function uniqueValues(rows, key) {
   const set = new Set();
@@ -249,7 +246,9 @@ function EditableSelectCell({ value, options, onSave, className, renderDisplay }
 
   return (
     <td className={`${className} ${styles.editable}`} onClick={() => setEditing(true)}>
-      {renderDisplay ? renderDisplay(value) : value || <span className={styles.placeholder}>—</span>}
+      {renderDisplay
+        ? renderDisplay(value)
+        : value || <span className={styles.placeholder}>—</span>}
     </td>
   );
 }
@@ -289,6 +288,8 @@ const TableView = React.memo(({ cardIds }) => {
   const [dateEnd, setDateEnd] = useState('');
   const [draggingCardId, setDraggingCardId] = useState(null);
   const [dragOverListId, setDragOverListId] = useState(null);
+  const [dragOverRowId, setDragOverRowId] = useState(null);
+  const [dragInsertAfter, setDragInsertAfter] = useState(false);
 
   const hasAnyLabel = useMemo(() => rows.some((r) => r.labels.length > 0), [rows]);
   const hasCidade = useMemo(() => columns.some((c) => c.name === 'Cidade'), [columns]);
@@ -347,7 +348,9 @@ const TableView = React.memo(({ cardIds }) => {
         return true;
       });
     }
-    return [...out].sort((a, b) => rankForLabels(a.labels) - rankForLabels(b.labels));
+    // Ordering follows the manual position the user set by drag&drop.
+    // Falls back to the original creation order when positions tie.
+    return [...out].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || (a.id < b.id ? -1 : 1));
   }, [rows, filterPriority, filterCidade, filterEstado, searchOs, searchCliente, dateRange]);
 
   // Group filtered rows by list, ordered by list position.
@@ -486,12 +489,52 @@ const TableView = React.memo(({ cardIds }) => {
     if (dragOverListId !== listId) setDragOverListId(listId);
   };
 
-  const handleSectionDrop = (listId) => (e) => {
+  const handleSectionDrop = (listId, sectionRows) => (e) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData('text/plain') || draggingCardId;
     setDraggingCardId(null);
     setDragOverListId(null);
-    if (cardId) dispatch(entryActions.moveCard(cardId, listId, 0));
+    setDragOverRowId(null);
+    setDragInsertAfter(false);
+    if (!cardId) return;
+    // Section-level drop falls to the bottom of the section.
+    const insertIndex = sectionRows ? sectionRows.length : 0;
+    dispatch(entryActions.moveCard(cardId, listId, insertIndex));
+  };
+
+  // Per-row drop (for reordering within or across sections).
+  const handleRowDragOver = (listId, rowId) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.currentTarget.getBoundingClientRect();
+    const after = e.clientY - rect.top > rect.height / 2;
+    if (dragOverListId !== listId) setDragOverListId(listId);
+    if (dragOverRowId !== rowId) setDragOverRowId(rowId);
+    if (dragInsertAfter !== after) setDragInsertAfter(after);
+  };
+
+  const handleRowDrop = (listId, sectionRows, rowIndex) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const cardId = e.dataTransfer.getData('text/plain') || draggingCardId;
+    const after = dragInsertAfter;
+    setDraggingCardId(null);
+    setDragOverListId(null);
+    setDragOverRowId(null);
+    setDragInsertAfter(false);
+    if (!cardId) return;
+    // Compute the desired insertion index. When reordering within the
+    // same section, account for the moved row being removed first.
+    const sourceIndex = sectionRows.findIndex((r) => r.id === cardId);
+    let targetIndex = rowIndex + (after ? 1 : 0);
+    if (sourceIndex !== -1 && sourceIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    if (sourceIndex === targetIndex && sectionRows[sourceIndex]?.listId === listId) {
+      return;
+    }
+    dispatch(entryActions.moveCard(cardId, listId, targetIndex));
   };
 
   const hasActiveFilter =
@@ -526,103 +569,112 @@ const TableView = React.memo(({ cardIds }) => {
 
   const totalColumns = 4 + (hasAnyLabel ? 1 : 0) + columns.length;
 
-  const renderRow = (row, idx, ownerListId) => (
-    <tr
-      key={row.id}
-      className={`${styles.row} ${draggingCardId === row.id ? styles.rowDragging : ''} ${
-        styles[priorityClassFor(row.labels)] || ''
-      } ${dragOverListId === ownerListId && draggingCardId ? styles.rowDropTarget : ''}`}
-      draggable
-      onDragStart={handleDragStart(row.id)}
-      onDragEnd={handleDragEnd}
-      onDragOver={ownerListId ? handleSectionDragOver(ownerListId) : undefined}
-      onDragLeave={() => setDragOverListId(null)}
-      onDrop={ownerListId ? handleSectionDrop(ownerListId) : undefined}
-    >
-      <td className={styles.rowNum}>
-        <span className={styles.dragHandle} title="Arraste para mover">⋮⋮</span>
-        {idx + 1}
-      </td>
-      <td className={styles.cellAction}>
-        <button
-          type="button"
-          className={styles.openBtn}
-          onClick={handleOpenCard(row.id)}
-          title="Abrir card"
-        >
-          ↗
-        </button>
-      </td>
-      <EditableTextCell
-        value={row.name}
-        onSave={handleRename(row.id)}
-        className={styles.cellBold}
-      />
-      <EditableSelectCell
-        value={row.listId || ''}
-        options={listOptions}
-        onSave={handleMoveList(row.id)}
-        className={styles.cell}
-        renderDisplay={() => row.listName || <span className={styles.placeholder}>—</span>}
-      />
-      {hasAnyLabel && (
-        <EditableSelectCell
-          value={row.labels[0]?.name || ''}
-          options={priorityLabelOptions}
-          onSave={handleChangePriority(row.id, row.labels)}
-          className={styles.cell}
-          renderDisplay={() =>
-            row.labels.length > 0 ? (
-              row.labels.map((lbl) => (
-                <span
-                  key={lbl.id}
-                  className={`${styles.labelPill} ${styles[`color-${lbl.color}`] || ''}`}
-                >
-                  {lbl.name}
-                </span>
-              ))
-            ) : (
-              <span className={styles.placeholder}>—</span>
-            )
-          }
-        />
-      )}
-      {columns.map((col) => {
-        const entry = row.fields[col.key] || { value: '' };
-        const value = entry.value || '';
-        const isBoolean =
-          col.name === 'Garantia' ||
-          col.name.startsWith('Tem ') ||
-          col.name === 'Troca de Óleo';
-        const isLong = col.name === 'Motivo do Chamado' || col.name === 'Observações';
+  const renderRow = (row, idx, ownerListId, sectionRows) => {
+    const showsDropIndicator =
+      dragOverRowId === row.id && draggingCardId && draggingCardId !== row.id;
+    let dropIndicatorClass = '';
+    if (showsDropIndicator) {
+      dropIndicatorClass = dragInsertAfter ? styles.rowDropAfter : styles.rowDropBefore;
+    }
 
-        if (isBoolean) {
+    return (
+      <tr
+        key={row.id}
+        className={`${styles.row} ${draggingCardId === row.id ? styles.rowDragging : ''} ${
+          styles[priorityClassFor(row.labels)] || ''
+        } ${dropIndicatorClass}`}
+        draggable
+        onDragStart={handleDragStart(row.id)}
+        onDragEnd={handleDragEnd}
+        onDragOver={ownerListId ? handleRowDragOver(ownerListId, row.id) : undefined}
+        onDragLeave={() => setDragOverRowId(null)}
+        onDrop={ownerListId ? handleRowDrop(ownerListId, sectionRows, idx) : undefined}
+      >
+        <td className={styles.rowNum}>
+          <span className={styles.dragHandle} title="Arraste para mover">
+            ⋮⋮
+          </span>
+          {idx + 1}
+        </td>
+        <td className={styles.cellAction}>
+          <button
+            type="button"
+            className={styles.openBtn}
+            onClick={handleOpenCard(row.id)}
+            title="Abrir card"
+          >
+            ↗
+          </button>
+        </td>
+        <EditableTextCell
+          value={row.name}
+          onSave={handleRename(row.id)}
+          className={styles.cellBold}
+        />
+        <EditableSelectCell
+          value={row.listId || ''}
+          options={listOptions}
+          onSave={handleMoveList(row.id)}
+          className={styles.cell}
+          renderDisplay={() => row.listName || <span className={styles.placeholder}>—</span>}
+        />
+        {hasAnyLabel && (
+          <EditableSelectCell
+            value={row.labels[0]?.name || ''}
+            options={priorityLabelOptions}
+            onSave={handleChangePriority(row.id, row.labels)}
+            className={styles.cell}
+            renderDisplay={() =>
+              row.labels.length > 0 ? (
+                row.labels.map((lbl) => (
+                  <span
+                    key={lbl.id}
+                    className={`${styles.labelPill} ${styles[`color-${lbl.color}`] || ''}`}
+                  >
+                    {lbl.name}
+                  </span>
+                ))
+              ) : (
+                <span className={styles.placeholder}>—</span>
+              )
+            }
+          />
+        )}
+        {columns.map((col) => {
+          const entry = row.fields[col.key] || { value: '' };
+          const value = entry.value || '';
+          const isBoolean =
+            col.name === 'Garantia' || col.name.startsWith('Tem ') || col.name === 'Troca de Óleo';
+          const isLong = col.name === 'Motivo do Chamado' || col.name === 'Observações';
+
+          if (isBoolean) {
+            return (
+              <EditableSelectCell
+                key={col.key}
+                value={value}
+                options={[
+                  { value: 'Sim', label: 'Sim' },
+                  { value: 'Não', label: 'Não' },
+                ]}
+                onSave={handleChangeField(row.id, entry)}
+                className={styles.cell}
+              />
+            );
+          }
+
           return (
-            <EditableSelectCell
+            <EditableTextCell
               key={col.key}
               value={value}
-              options={[
-                { value: 'Sim', label: 'Sim' },
-                { value: 'Não', label: 'Não' },
-              ]}
+              multiline={isLong}
               onSave={handleChangeField(row.id, entry)}
-              className={styles.cell}
+              className={isLong ? styles.cellWrap : styles.cell}
             />
           );
-        }
-
-        return (
-          <EditableTextCell
-            key={col.key}
-            value={value}
-            multiline={isLong}
-            onSave={handleChangeField(row.id, entry)}
-            className={isLong ? styles.cellWrap : styles.cell}
-          />
-        );
-      })}
-    </tr>
-  );
+        })}
+      </tr>
+    );
+  };
 
   return (
     <div ref={wrapperRef} className={styles.wrapper}>
@@ -749,7 +801,7 @@ const TableView = React.memo(({ cardIds }) => {
         <thead>
           <tr>
             <th className={styles.headerCell}>#</th>
-            <th className={styles.headerCell}></th>
+            <th className={styles.headerCell} />
             <th className={styles.headerCell}>Card</th>
             <th className={styles.headerCell}>Lista</th>
             {hasAnyLabel && <th className={styles.headerCell}>Prioridade</th>}
@@ -769,7 +821,7 @@ const TableView = React.memo(({ cardIds }) => {
                   className={`${styles.groupHeader} ${isDropTarget ? styles.dropTarget : ''}`}
                   onDragOver={handleSectionDragOver(list.id)}
                   onDragLeave={() => setDragOverListId(null)}
-                  onDrop={handleSectionDrop(list.id)}
+                  onDrop={handleSectionDrop(list.id, listRows)}
                 >
                   <td className={styles.groupHeaderCell} colSpan={totalColumns}>
                     <span className={styles.groupName}>{list.name}</span>
@@ -784,14 +836,14 @@ const TableView = React.memo(({ cardIds }) => {
                     className={`${styles.emptyGroupRow} ${isDropTarget ? styles.dropTarget : ''}`}
                     onDragOver={handleSectionDragOver(list.id)}
                     onDragLeave={() => setDragOverListId(null)}
-                    onDrop={handleSectionDrop(list.id)}
+                    onDrop={handleSectionDrop(list.id, listRows)}
                   >
                     <td colSpan={totalColumns} className={styles.emptyGroupCell}>
                       Nenhum card nesta lista
                     </td>
                   </tr>
                 ) : (
-                  listRows.map((row, idx) => renderRow(row, idx, list.id))
+                  listRows.map((row, idx) => renderRow(row, idx, list.id, listRows))
                 )}
               </React.Fragment>
             );

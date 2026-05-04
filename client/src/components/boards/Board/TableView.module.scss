@@ -143,6 +143,16 @@
     box-shadow: inset 4px 0 0 0 #4f6bed;
   }
 
+  /* Insertion indicator: a thick blue line above or below the hovered row,
+     showing exactly where the dragged card will land. */
+  .rowDropBefore {
+    box-shadow: inset 0 3px 0 0 #2684ff;
+  }
+
+  .rowDropAfter {
+    box-shadow: inset 0 -3px 0 0 #2684ff;
+  }
+
   /* Priority-based row colors (match the legend image exactly). */
   $priorities: (
     priorityBaixa:        (#00ff00, #000),
