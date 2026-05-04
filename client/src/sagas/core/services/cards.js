@@ -293,28 +293,40 @@ export function* updateCard(id, data) {
     const list = yield select(selectors.selectListById, data.listId);
 
     if (list && list.labelId) {
-      if (list.type === ListTypes.STATUS) {
-        const existingLabelIds = yield select(selectors.selectLabelIdsByCardId, id);
+      try {
+        const {
+          item: refreshedCard,
+          included: {
+            users,
+            cardMemberships,
+            cardLabels,
+            taskLists,
+            tasks,
+            attachments,
+            customFieldGroups,
+            customFields,
+            customFieldValues,
+          },
+        } = yield call(request, api.getCard, id);
 
-        // eslint-disable-next-line no-restricted-syntax
-        for (const labelId of existingLabelIds) {
-          if (labelId !== list.labelId) {
-            yield put(
-              actions.handleLabelFromCardRemove({
-                cardId: id,
-                labelId,
-              }),
-            );
-          }
-        }
+        yield put(
+          actions.handleCardUpdate(
+            refreshedCard,
+            true,
+            users,
+            cardMemberships,
+            cardLabels,
+            taskLists,
+            tasks,
+            attachments,
+            customFieldGroups,
+            customFields,
+            customFieldValues,
+          ),
+        );
+      } catch {
+        /* ignore refetch errors */
       }
-
-      yield put(
-        actions.handleLabelToCardAdd({
-          cardId: id,
-          labelId: list.labelId,
-        }),
-      );
     }
   }
 }

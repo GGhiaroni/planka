@@ -69,6 +69,8 @@ module.exports = {
 
     const board = values.board || inputs.board;
 
+    const isListInRequest = !!values.list;
+
     if (values.list) {
       if (values.list.boardId !== board.id) {
         throw 'listInValuesMustBelongToBoard';
@@ -330,48 +332,48 @@ module.exports = {
             board: inputs.board,
             list: values.list,
           });
+        }
 
-          if (values.list.labelId) {
-            const targetLabel = await Label.qm.getOneById(values.list.labelId);
+        if (isListInRequest && list.labelId) {
+          const targetLabel = await Label.qm.getOneById(list.labelId);
 
-            if (targetLabel) {
-              if (values.list.type === List.Types.STATUS) {
-                const existingCardLabels = await CardLabel.qm.getByCardId(card.id);
+          if (targetLabel) {
+            const existingCardLabels = await CardLabel.qm.getByCardId(card.id);
 
-                // eslint-disable-next-line no-restricted-syntax
-                for (const cardLabel of existingCardLabels) {
-                  if (cardLabel.labelId === targetLabel.id) {
-                    // eslint-disable-next-line no-continue
-                    continue;
-                  }
-
-                  // eslint-disable-next-line no-await-in-loop
-                  await sails.helpers.cardLabels.deleteOne.with({
-                    record: cardLabel,
-                    project: inputs.project,
-                    board: inputs.board,
-                    list: values.list,
-                    card,
-                    actorUser: inputs.actorUser,
-                    request: inputs.request,
-                  });
+            if (list.type === List.Types.STATUS) {
+              // eslint-disable-next-line no-restricted-syntax
+              for (const cardLabel of existingCardLabels) {
+                if (cardLabel.labelId === targetLabel.id) {
+                  // eslint-disable-next-line no-continue
+                  continue;
                 }
-              }
 
-              try {
-                await sails.helpers.cardLabels.createOne.with({
+                // eslint-disable-next-line no-await-in-loop
+                await sails.helpers.cardLabels.deleteOne.with({
+                  record: cardLabel,
                   project: inputs.project,
                   board: inputs.board,
-                  list: values.list,
-                  values: { card, label: targetLabel },
+                  list,
+                  card,
                   actorUser: inputs.actorUser,
                   request: inputs.request,
                 });
-              } catch (error) {
-                if (error !== 'labelAlreadyInCard') {
-                  throw error;
-                }
               }
+            }
+
+            const alreadyLinked = existingCardLabels.some(
+              (cardLabel) => cardLabel.labelId === targetLabel.id,
+            );
+
+            if (!alreadyLinked) {
+              await sails.helpers.cardLabels.createOne.with({
+                project: inputs.project,
+                board: inputs.board,
+                list,
+                values: { card, label: targetLabel },
+                actorUser: inputs.actorUser,
+                request: inputs.request,
+              });
             }
           }
         }

@@ -154,20 +154,14 @@ module.exports = {
       const linkedLabel = await Label.qm.getOneById(values.list.labelId);
 
       if (linkedLabel) {
-        try {
-          await sails.helpers.cardLabels.createOne.with({
-            project: inputs.project,
-            board: values.board,
-            list: values.list,
-            values: { card, label: linkedLabel },
-            actorUser: values.creatorUser,
-            request: inputs.request,
-          });
-        } catch (error) {
-          if (error !== 'labelAlreadyInCard') {
-            throw error;
-          }
-        }
+        await sails.helpers.cardLabels.createOne.with({
+          project: inputs.project,
+          board: values.board,
+          list: values.list,
+          values: { card, label: linkedLabel },
+          actorUser: values.creatorUser,
+          request: inputs.request,
+        });
       }
     }
 
