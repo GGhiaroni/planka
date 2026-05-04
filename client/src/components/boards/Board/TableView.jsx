@@ -59,6 +59,12 @@ const DATE_PRESETS = [
   { value: 'custom', label: 'Personalizado...' },
 ];
 
+function densityClassFor(density, styles) {
+  if (density === 'compact') return styles.densityCompact;
+  if (density === 'relaxed') return styles.densityRelaxed;
+  return styles.densityNormal;
+}
+
 function uniqueValues(rows, key) {
   const set = new Set();
   rows.forEach((r) => {
@@ -290,6 +296,24 @@ const TableView = React.memo(({ cardIds }) => {
   const [dragOverListId, setDragOverListId] = useState(null);
   const [dragOverRowId, setDragOverRowId] = useState(null);
   const [dragInsertAfter, setDragInsertAfter] = useState(false);
+  const [density, setDensityState] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('planka:tableview-density');
+      return stored === 'compact' || stored === 'normal' || stored === 'relaxed'
+        ? stored
+        : 'compact';
+    } catch {
+      return 'compact';
+    }
+  });
+  const setDensity = (next) => {
+    setDensityState(next);
+    try {
+      window.localStorage.setItem('planka:tableview-density', next);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const hasAnyLabel = useMemo(() => rows.some((r) => r.labels.length > 0), [rows]);
   const hasCidade = useMemo(() => columns.some((c) => c.name === 'Cidade'), [columns]);
@@ -795,9 +819,26 @@ const TableView = React.memo(({ cardIds }) => {
         <div className={styles.rowCount}>
           {filteredRows.length} de {rows.length} chamados
         </div>
+        <div className={styles.densityToggle} role="group" aria-label="Altura das linhas">
+          {[
+            { v: 'compact', icon: '☰', title: 'Compacto' },
+            { v: 'normal', icon: '≡', title: 'Normal' },
+            { v: 'relaxed', icon: '⊟', title: 'Espaçoso' },
+          ].map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              className={`${styles.densityBtn} ${density === opt.v ? styles.densityBtnActive : ''}`}
+              onClick={() => setDensity(opt.v)}
+              title={opt.title}
+            >
+              {opt.icon}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <table className={styles.table}>
+      <table className={`${styles.table} ${densityClassFor(density, styles)}`}>
         <thead>
           <tr>
             <th className={styles.headerCell}>#</th>
