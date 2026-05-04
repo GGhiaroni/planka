@@ -141,6 +141,7 @@ export default {
       currentUser: 'Current user',
       customFieldGroup_title: 'Custom Field Group',
       customFieldGroups_title: 'Custom Field Groups',
+      customField: 'Custom field',
       customField_title: 'Custom Field',
       customFields_title: 'Custom Fields',
       customerPanel_title: 'Customer Panel',
@@ -260,6 +261,8 @@ export default {
       oldestFirst: 'Oldest first',
       onlyOneManagerShouldRemainToMakeThisProjectPrivate:
         'Only one manager should remain to make this project private',
+      deletedCard: '(deleted card)',
+      none: 'none',
       openBoard_title: 'Open Board',
       optional_inline: 'optional',
       organization: 'Organization',
@@ -331,6 +334,7 @@ export default {
       typeNameToConfirm: 'Type the name to confirm.',
       typeTitleToConfirm: 'Type the title to confirm.',
       unlinkSso_title: 'Inlink SSO',
+      unnamedLabel: 'unnamed',
       unsavedChanges: 'Unsaved changes',
       uploadFailedFileIsTooBig: 'Upload failed: File is too big.',
       uploadFailedNotEnoughStorageSpace: 'Upload failed: Not enough storage space.',
@@ -356,12 +360,23 @@ export default {
       userMarkedTaskIncompleteOnThisCard: '<0>{{user}}</0> marked {{task}} incomplete on this card',
       userMentionedYouInCommentOnCard:
         '<0>{{user}}</0> mentioned you in a comment «{{comment}}» on <2>{{card}}</2>',
+      userAddedLabelToCard: '<0>{{user}}</0> added label "{{label}}" to <2>{{card}}</2>',
+      userChangedDueDateOfCardFromTo:
+        '<0>{{user}}</0> changed the due date of <2>{{card}}</2> from {{fromDueDate}} to {{toDueDate}}',
+      userClearedDescriptionOfCard: '<0>{{user}}</0> cleared the description of <2>{{card}}</2>',
+      userClearedDueDateOfCard: '<0>{{user}}</0> cleared the due date of <2>{{card}}</2>',
+      userEditedDescriptionOfCard: '<0>{{user}}</0> edited the description of <2>{{card}}</2>',
       userMovedCardFromListToList:
         '<0>{{user}}</0> moved <2>{{card}}</2> from {{fromList}} to {{toList}}',
       userMovedThisCardFromListToList:
         '<0>{{user}}</0> moved this card from {{fromList}} to {{toList}}',
+      userRemovedLabelFromCard: '<0>{{user}}</0> removed label "{{label}}" from <2>{{card}}</2>',
       userRemovedUserFromCard: '<0>{{actorUser}}</0> removed {{removedUser}} from <4>{{card}}</4>',
       userRemovedUserFromThisCard: '<0>{{actorUser}}</0> removed {{removedUser}} from this card',
+      userRenamedCardFromTo: '<0>{{user}}</0> renamed <2>{{fromName}}</2> to "{{toName}}"',
+      userSetDueDateOfCardTo:
+        '<0>{{user}}</0> set the due date of <2>{{card}}</2> to {{toDueDate}}',
+      userUpdatedFieldOnCard: '<0>{{user}}</0> updated {{field}} on <2>{{card}}</2>',
       username: 'Username',
       users: 'Users',
       viewer: 'Viewer',

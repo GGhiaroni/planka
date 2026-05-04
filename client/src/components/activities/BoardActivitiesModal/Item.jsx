@@ -36,7 +36,10 @@ const Item = React.memo(({ id }) => {
       })
     : user.name;
 
-  const cardName = card ? card.name : activity.data.card.name;
+  const cardName =
+    (card && card.name) ||
+    (activity.data && activity.data.card && activity.data.card.name) ||
+    t('common.deletedCard');
 
   let contentNode;
   switch (activity.type) {
@@ -193,6 +196,133 @@ const Item = React.memo(({ id }) => {
       );
 
       break;
+    case ActivityTypes.UPDATE_CARD_NAME: {
+      const { fromName, toName } = activity.data;
+
+      contentNode = (
+        <Trans i18nKey="common.userRenamedCardFromTo" values={{ user: userName, fromName, toName }}>
+          <span className={styles.author}>{userName}</span>
+          {' renamed '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{fromName}</Link>
+          {' to '}
+          {toName}
+        </Trans>
+      );
+
+      break;
+    }
+    case ActivityTypes.UPDATE_CARD_DESCRIPTION: {
+      const i18nKey = activity.data.hasContent
+        ? 'common.userEditedDescriptionOfCard'
+        : 'common.userClearedDescriptionOfCard';
+
+      contentNode = (
+        <Trans i18nKey={i18nKey} values={{ user: userName, card: cardName }}>
+          <span className={styles.author}>{userName}</span>
+          {' edited the description of '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{cardName}</Link>
+        </Trans>
+      );
+
+      break;
+    }
+    case ActivityTypes.UPDATE_CARD_DUE_DATE: {
+      const { fromDueDate, toDueDate } = activity.data;
+      const formatDueDate = (value) =>
+        value
+          ? new Date(value).toLocaleString(undefined, {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })
+          : t('common.none');
+
+      let i18nKey;
+      if (!fromDueDate && toDueDate) i18nKey = 'common.userSetDueDateOfCardTo';
+      else if (fromDueDate && !toDueDate) i18nKey = 'common.userClearedDueDateOfCard';
+      else i18nKey = 'common.userChangedDueDateOfCardFromTo';
+
+      contentNode = (
+        <Trans
+          i18nKey={i18nKey}
+          values={{
+            user: userName,
+            card: cardName,
+            fromDueDate: formatDueDate(fromDueDate),
+            toDueDate: formatDueDate(toDueDate),
+          }}
+        >
+          <span className={styles.author}>{userName}</span>
+          {' updated the due date of '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{cardName}</Link>
+        </Trans>
+      );
+
+      break;
+    }
+    case ActivityTypes.ADD_LABEL_TO_CARD: {
+      const labelName =
+        activity.data.label && activity.data.label.name
+          ? activity.data.label.name
+          : t('common.unnamedLabel');
+
+      contentNode = (
+        <Trans
+          i18nKey="common.userAddedLabelToCard"
+          values={{ user: userName, label: labelName, card: cardName }}
+        >
+          <span className={styles.author}>{userName}</span>
+          {' added label '}
+          {labelName}
+          {' to '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{cardName}</Link>
+        </Trans>
+      );
+
+      break;
+    }
+    case ActivityTypes.REMOVE_LABEL_FROM_CARD: {
+      const labelName =
+        activity.data.label && activity.data.label.name
+          ? activity.data.label.name
+          : t('common.unnamedLabel');
+
+      contentNode = (
+        <Trans
+          i18nKey="common.userRemovedLabelFromCard"
+          values={{ user: userName, label: labelName, card: cardName }}
+        >
+          <span className={styles.author}>{userName}</span>
+          {' removed label '}
+          {labelName}
+          {' from '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{cardName}</Link>
+        </Trans>
+      );
+
+      break;
+    }
+    case ActivityTypes.UPDATE_CUSTOM_FIELD_VALUE: {
+      const fieldName =
+        (activity.data.customField && activity.data.customField.name) ||
+        (activity.data.field && activity.data.field.name) ||
+        t('common.customField');
+
+      contentNode = (
+        <Trans
+          i18nKey="common.userUpdatedFieldOnCard"
+          values={{ user: userName, field: fieldName, card: cardName }}
+        >
+          <span className={styles.author}>{userName}</span>
+          {' updated '}
+          {fieldName}
+          {' on '}
+          <Link to={Paths.CARDS.replace(':id', activity.cardId)}>{cardName}</Link>
+        </Trans>
+      );
+
+      break;
+    }
     default:
       contentNode = null;
   }

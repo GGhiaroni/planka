@@ -149,6 +149,7 @@ export default {
       currentUser: 'Usuário atual',
       customFieldGroup_title: 'Grupo de campo personalizado',
       customFieldGroups_title: 'Grupos de campo personalizado',
+      customField: 'Campo personalizado',
       customField_title: 'Campo personalizado',
       customFields_title: 'Campos personalizados',
       customerPanel_title: 'Painel do cliente',
@@ -268,6 +269,8 @@ export default {
       oldestFirst: 'Mais antigos primeiro',
       onlyOneManagerShouldRemainToMakeThisProjectPrivate:
         'Apenas um gerente deve permanecer para tornar este projeto privado',
+      deletedCard: '(cartão excluído)',
+      none: 'nenhuma',
       openBoard_title: 'Abrir quadro',
       optional_inline: 'opcional',
       organization: 'Organização',
@@ -341,6 +344,7 @@ export default {
       typeNameToConfirm: 'Digite o nome para confirmar.',
       typeTitleToConfirm: 'Digite o título para confirmar.',
       unlinkSso_title: 'Desvinculação de SSO',
+      unnamedLabel: 'sem nome',
       unsavedChanges: 'Alterações não salvas',
       uploadFailedFileIsTooBig: 'Falha no upload: arquivo muito grande.',
       uploadFailedNotEnoughStorageSpace: 'Falha no upload: espaço de armazenamento insuficiente.',
@@ -367,12 +371,23 @@ export default {
         '<0>{{user}}</0> marcou {{task}} como incompleta neste cartão',
       userMentionedYouInCommentOnCard:
         '<0>{{user}}</0> mencionou você em um comentário «{{comment}}» em <2>{{card}}</2>',
+      userAddedLabelToCard: '<0>{{user}}</0> adicionou o rótulo "{{label}}" a <2>{{card}}</2>',
+      userChangedDueDateOfCardFromTo:
+        '<0>{{user}}</0> alterou a data de vencimento de <2>{{card}}</2> de {{fromDueDate}} para {{toDueDate}}',
+      userClearedDescriptionOfCard: '<0>{{user}}</0> removeu a descrição de <2>{{card}}</2>',
+      userClearedDueDateOfCard: '<0>{{user}}</0> removeu a data de vencimento de <2>{{card}}</2>',
+      userEditedDescriptionOfCard: '<0>{{user}}</0> editou a descrição de <2>{{card}}</2>',
       userMovedCardFromListToList:
         '<0>{{user}}</0> moveu <2>{{card}}</2> de {{fromList}} para {{toList}}',
       userMovedThisCardFromListToList:
         '<0>{{user}}</0> moveu este cartão de {{fromList}} para {{toList}}',
+      userRemovedLabelFromCard: '<0>{{user}}</0> removeu o rótulo "{{label}}" de <2>{{card}}</2>',
       userRemovedUserFromCard: '<0>{{actorUser}}</0> removeu {{removedUser}} de <4>{{card}}</4>',
       userRemovedUserFromThisCard: '<0>{{actorUser}}</0> removeu {{removedUser}} deste cartão',
+      userRenamedCardFromTo: '<0>{{user}}</0> renomeou <2>{{fromName}}</2> para "{{toName}}"',
+      userSetDueDateOfCardTo:
+        '<0>{{user}}</0> definiu a data de vencimento de <2>{{card}}</2> como {{toDueDate}}',
+      userUpdatedFieldOnCard: '<0>{{user}}</0> atualizou {{field}} em <2>{{card}}</2>',
       username: 'Nome de usuário',
       users: 'Usuários',
       viewer: 'Visualizador',
