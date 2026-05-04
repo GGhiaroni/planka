@@ -43,14 +43,18 @@ const KanbanContent = React.memo(() => {
   const wrapperRef = useRef(null);
   const prevPositionRef = useRef(null);
 
-  const handleDragStart = useCallback(() => {
+  const handleDragStart = useCallback(({ type }) => {
     document.body.classList.add(globalStyles.dragging);
+    if (type === DroppableTypes.CARD) {
+      document.body.classList.add('is-dragging-card');
+    }
     closePopup();
   }, []);
 
   const handleDragEnd = useCallback(
     ({ draggableId, type, source, destination }) => {
       document.body.classList.remove(globalStyles.dragging);
+      document.body.classList.remove('is-dragging-card');
 
       if (!destination) {
         return;

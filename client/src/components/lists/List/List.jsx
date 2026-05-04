@@ -212,13 +212,17 @@ const List = React.memo(({ id, index }) => {
             type={DroppableTypes.CARD}
             isDropDisabled={!list.isPersisted || !canDropCard}
           >
-            {({ innerRef: droppableRef, droppableProps, placeholder }) => (
+            {({ innerRef: droppableRef, droppableProps, placeholder }, snapshot) => (
               <div
                 {...droppableProps} // eslint-disable-line react/jsx-props-no-spreading
                 ref={setOuterWrapperRef(droppableRef)}
                 className={classNames(
                   styles.outerWrapper,
                   isCollapsed && styles.outerWrapperCollapsed,
+                  isCollapsed &&
+                    snapshot &&
+                    snapshot.isDraggingOver &&
+                    styles.outerWrapperCollapsedDropping,
                   isFavoritesActive && styles.outerWrapperWithFavorites,
                   list.color && globalStyles[`background${upperFirst(camelCase(list.color))}Soft`],
                 )}

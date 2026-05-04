@@ -204,12 +204,26 @@
   /* Collapsed list */
 
   .innerWrapperCollapsed {
+    transition: width 0.15s ease-out;
     width: 44px;
   }
 
+  /* When a card is being dragged anywhere on the board, widen every
+     collapsed list so two side-by-side ones don't overlap drop zones. */
+  :global(body.is-dragging-card) .innerWrapperCollapsed {
+    width: 96px;
+  }
+
   .outerWrapperCollapsed {
+    border: 2px dashed transparent;
     height: 280px;
     max-height: 280px;
+    transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+  }
+
+  .outerWrapperCollapsedDropping {
+    background: rgba(38, 132, 255, 0.18) !important;
+    border-color: #2684ff;
   }
 
   .collapsedHeader {
