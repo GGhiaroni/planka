@@ -3,6 +3,16 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
+const DULL_LABEL_COLORS = [
+  'muddy-grey',
+  'dark-granite',
+  'light-concrete',
+  'silver-glint',
+  'grey-stone',
+  'wet-rock',
+  'gun-metal',
+];
+
 module.exports = {
   inputs: {
     values: {
@@ -69,7 +79,7 @@ module.exports = {
         project: inputs.project,
         values: {
           name: values.name,
-          color: _.sample(Label.COLORS),
+          color: _.sample(_.difference(Label.COLORS, DULL_LABEL_COLORS)),
           position: lastPosition + 65536,
           board: values.board,
         },
