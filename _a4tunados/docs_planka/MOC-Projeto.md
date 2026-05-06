@@ -15,6 +15,14 @@
 
 - [Op 01: deploy-planka-hostinger-redeploy](sessoes/2026-05-06_op01-deploy-staging.md) — 2026-05-06
 
+## Report Executivo
+
+- [report-executivo.md](report-executivo.md) — Consolidacao geral de operacoes, custos e metricas do projeto
+
+## Cards card-isolated
+
+- [Card 377530 — Validar fluxo de deploy automatico do staging](cards/1769151526032377530_validar-fluxo-de-deploy-automa/report-executivo.md) — 2026-05-06 (✅ validado end-to-end)
+
 ## ADRs
 
 - [ADR-001: Deploy staging via Docker Compose + nginx host + CI/CD GitHub Actions](decisoes/ADR-001-deploy-staging-cicd.md)
@@ -23,6 +31,7 @@
 ## Implementação
 
 - [Fluxo deploy staging via branch deploy/staging](implementacao/staging-deploy-flow.md)
+- [Forms ticket-form: 2 endpoints, 2 boards Planka](cards/1769151526032377530_validar-fluxo-de-deploy-automa/sessoes/2026-05-06_01_card-377530-validar-deploy.md#acoes-executadas) (mapeado no Card 377530)
 
 ## Funcionalidades (do dev)
 
