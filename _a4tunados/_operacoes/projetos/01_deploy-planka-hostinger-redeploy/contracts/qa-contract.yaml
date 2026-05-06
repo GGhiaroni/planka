@@ -1,0 +1,115 @@
+# QA Contract — Op 01 deploy-planka-hostinger-redeploy
+# Spec: .claude/skills/tuninho-ddce/references/contract-spec.md
+# Padrão: Contract Pattern v4.0.0+ (Regra Inviolável #31)
+
+contract:
+  operacao: "01_deploy-planka-hostinger-redeploy"
+  status: ACTIVE
+  created_at: "2026-05-06T16:00:00Z"
+  ddce_version: "v5.0.3"
+  qa_version: "v5.5.0"
+
+acceptance:
+  accepted_at: "2026-05-06T16:00:00Z"
+  accepted_by: "tuninho-ddce"
+  accepted_version: "v5.0.3"
+  notes: "Modo AUTONOMO_CRITERIOSO — gates internos auto-aprovados pela autorização macro do operador (Regra #61). Regra #51 (write prod DB) preservada."
+
+obligations:
+  # Estáticas (Etapa 7)
+  - id: OBL-ENV
+    mode: audit-ambiente
+    blocking: true
+    description: "Validar MCPs, skills atualizadas, hooks ativos, gh autenticado"
+    status: PENDING
+
+  - id: OBL-SIDECARS
+    mode: audit-sidecars
+    blocking: true
+    description: "Validar sidecars devops alimentados (devops-hostinger + devops-env)"
+    status: PENDING
+
+  - id: OBL-DISCOVER
+    mode: audit-discovery
+    blocking: true
+    description: "D1-D20 do gate-discover checklist"
+    status: PENDING
+
+  - id: OBL-DEFINE
+    mode: audit-define
+    blocking: true
+    description: "F1-F26 do gate-define checklist + create-roteiros"
+    status: PENDING
+
+  - id: OBL-FINAL
+    mode: audit-gate-final
+    blocking: true
+    description: "G1-G18 do gate-final checklist + audit-licoes-skills-bump"
+    status: PENDING
+
+  - id: OBL-CONTRACT-COMPLIANCE
+    mode: audit-contract-compliance
+    blocking: true
+    description: "100% das obrigações DELIVERED antes do encerramento"
+    status: PENDING
+
+  - id: OBL-DEPLOY-RIGOR
+    mode: audit-deploy
+    blocking: true
+    description: "Validação pós-deploy: container healthy, nginx OK, SSL válido, Playwright PASS, zero impacto cross-project, logs limpos"
+    status: PENDING
+
+  # Dinâmicas (Etapa 8 — adicionadas com plano aprovado)
+  - id: OBL-FASE-1
+    mode: audit-gate-fase
+    blocking: true
+    description: "Fase 1 — Bootstrap deploy seguro (T1.1-T1.7)"
+    fase: 1
+    status: PENDING
+
+  - id: OBL-FASE-2
+    mode: audit-gate-fase
+    blocking: true
+    description: "Fase 2 — Ticket-form fix (T2.1-T2.6)"
+    fase: 2
+    status: PENDING
+
+  - id: OBL-FASE-3
+    mode: audit-gate-fase
+    blocking: true
+    description: "Fase 3 — CI/CD via deploy/staging (T3.1-T3.9)"
+    fase: 3
+    status: PENDING
+
+  - id: OBL-HAPPY-PATH-E2E
+    mode: audit-happy-path-e2e
+    blocking: true
+    description: "T1.7 + T2.6 — Auto-Test Happy Path E2E real (Regra #53). Multi-viewport (Regra #44). Multi-feature dos 5 commits do dev."
+    status: PENDING
+
+  - id: OBL-MOBILE-RESPONSIVE
+    mode: audit-mobile-responsive
+    blocking: true
+    description: "T1.7 — Validação 375x667 das features dev (drag, line-height, colapse)"
+    status: PENDING
+
+  - id: OBL-NO-IMPACT-OTHER-PROJECTS
+    mode: audit-cross-project-health
+    blocking: true
+    description: "Validar que a4tunados-mural e tuninho-ai no servidor B continuam UP healthy sem impacto"
+    status: PENDING
+
+amendments:
+  - timestamp: "2026-05-06T16:00:00Z"
+    type: dynamic_obligations_added
+    obligations_added: [OBL-FASE-1, OBL-FASE-2, OBL-FASE-3, OBL-HAPPY-PATH-E2E, OBL-MOBILE-RESPONSIVE, OBL-NO-IMPACT-OTHER-PROJECTS]
+    reason: "Plano aprovado em DEFINE — adicionando obrigações por fase + sub-checks específicos do escopo"
+    citation_macro_authorization: "Operador disse 'faça tudo de forma criteriosa mas autonoma' (mensagem 14, 2026-05-06) — autoriza autonomous criterious gates"
+
+summary:
+  total: 13
+  blocking_total: 13
+  blocking_pending: 13
+  blocking_delivered: 0
+  blocking_failed: 0
+  compliance_pct: "0%"

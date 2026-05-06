@@ -1,0 +1,191 @@
+# HANDOFF — Operação 01: deploy-planka-hostinger-redeploy
+# Sessão 1 (DISCOVER) → Sessão 2 (DEFINE)
+# Atualizado em: 2026-05-06T15:55:00Z
+
+ddce:
+  fase_metodo: DISCOVER (concluida)
+  proxima_fase: DEFINE
+  etapa_atual: 5_concluida
+  proxima_etapa: 6_define
+  modo: DDCE_EXPANSIVO_MULTI_SESSOES
+  modo_interacao: interativo
+
+contexto:
+  nome: deploy-planka-hostinger-redeploy
+  numero_op: "01"
+  objetivo: |
+    Atualizar o staging Planka customizado em https://pdviewerp-stagging.fourtuna.com.br
+    (servidor hostinger-beta, IP 76.13.239.198, srv1590899) com código da branch
+    develop atual de github.com/GGhiaroni/planka. Diagnosticar e corrigir ticket-form
+    (crashado por PLANKA_LIST_ID ausente). Entregar acessos ao dev pra usar staging
+    em ciclo de desenvolvimento. Mínimo impacto nos demais projetos do servidor B
+    (a4tunados-mural, tuninho-ai).
+  status: discover_concluido_aguardando_sessao2
+  branch_op: feat/deploy-planka-hostinger-redeploy
+  branch_base: develop@89d798ad
+  operador: victorgaudio
+  modelo: claude-opus-4-7[1m]
+
+artefatos_xp:
+  discovery: _a4tunados/_operacoes/prompts/01_1-xp_DISCOVERY_deploy-planka-hostinger-redeploy.md
+  define: null   # a gerar na sessao 2
+  fases: []      # a gerar na sessao 2
+
+artefatos:
+  prompt_original: _a4tunados/_operacoes/prompts/01_0_PROMPT_ORIGINAL.md
+  discovery_sintetico: _a4tunados/_operacoes/prompts/01_1_DISCOVERY_deploy-planka-hostinger-redeploy.md
+  discovery_xp: _a4tunados/_operacoes/prompts/01_1-xp_DISCOVERY_deploy-planka-hostinger-redeploy.md
+
+painel_resumido:
+  fases_concluidas:
+    - "Pre-op: branch fix/install-tuninho-gitignore mergeada via gitflow → develop (PR #1)"
+    - "Pre-op: develop syncada local pos-merge"
+    - "DISCOVER Etapas 1-5: prompt original + Discovery Ciclo 1-2 + artefatos _1_ e _1-xp_"
+  fase_atual: "DISCOVER concluida — aguardando sessao 2 abrir DEFINE"
+  fases_pendentes:
+    - "Sessao 2: Web research adicional (4+ buscas pendentes — Etapa 5)"
+    - "Sessao 2: tuninho-qa audit-discovery + audit-ambiente + audit-sidecars"
+    - "Sessao 2: DEFINE — Etapas 6-8 (plano com fases, contrato QA, mapping requisitos)"
+    - "Sessao 2 ou 3: EXECUTION (Fase 1 sync + rebuild, Fase 2 ticket-form fix, Fase 3 entrega)"
+    - "Sessao 3 ou 4: Validacao E2E real Playwright (Regras #19/#44/#53)"
+    - "Sessao final: encerramento (Comlurb seal + escriba + git-flow + sync develop pos-merge)"
+
+contexto_critico_para_sessao2:
+  servidores:
+    - hostinger-alfa:
+        ip: 31.97.243.191
+        hostname: srv1536196.hstgr.cloud
+        funcao: workspace dev (Claude Code esta aqui)
+        relevancia_op: SECUNDARIA — tem stack pdview_erp_stagging quebrado (cópia paralela), IGNORAR
+    - hostinger-beta:
+        ip: 76.13.239.198
+        hostname: srv1590899.hstgr.cloud
+        funcao: STAGING REAL do Planka (alvo da operação)
+        relevancia_op: PRIMARIA
+        acesso: SSH root via key configurada (testado UP)
+
+  servidor_b_estado:
+    docker:
+      compose_project: planka
+      compose_files:
+        - /opt/hostinger-beta/planka/docker-compose.prod.yml
+        - /opt/hostinger-beta/planka/docker-compose.hostinger-beta.yml
+      containers:
+        planka-planka-1: "UP healthy 5d, 127.0.0.1:1338→1337"
+        planka-postgres-1: "UP healthy 5d, postgres:16-alpine"
+        planka-ticket-form-1: "EXITED (1) 5d — crash por PLANKA_LIST_ID ausente"
+      imagem_atual:
+        nome: planka-custom:latest
+        built: 2026-04-30T21:00:02 UTC
+        source_branch_na_epoca: master (commit a8dcd7cef de plankanban/planka:2.1.1 base)
+        package_json_name: planka-server
+        package_json_version: "2.1.0"
+    nginx_host:
+      sites:
+        planka.conf: "/opt/hostinger-beta/nginx/sites/planka.conf — proxy 127.0.0.1:1338, SSL Let's Encrypt"
+        formularios.conf: "/opt/hostinger-beta/nginx/sites/formularios.conf — proxy 127.0.0.1:3002 (ticket-form), SSL Let's Encrypt"
+    ssl_certs:
+      - pdviewerp-stagging.fourtuna.com.br
+      - form-pdviewerp-stagging.fourtuna.com.br
+    volumes:
+      planka_postgres-data: "9.3 MB — DB com schema parcial (ERROR users not exists, talvez Planka 2.1 renomeou)"
+      planka_planka-data: "uploads/avatars/attachments — tamanho não verificado"
+    pasta_deploy: /opt/hostinger-beta/planka/
+    pasta_NAO_e_git_repo: true
+    owner_arquivos: "501:staff (UID sem usuário system → push via rsync/scp do dev local)"
+    outros_projetos_NAO_TOCAR:
+      - "PM2: a4tunados-mural (cluster, port 1337)"
+      - "PM2: tuninho-ai (Next.js, port 3100)"
+      - "Pasta: /opt/hostinger-beta/mural/"
+      - "Pasta: /opt/hostinger-beta/tuninho-ai/"
+
+  branch_local:
+    branch: feat/deploy-planka-hostinger-redeploy
+    base: develop@89d798ad (pos-merge PR #1 install ops-suite)
+    commits_dev_a_deployar:
+      - 0eb2a53e: "feat: Funcionalidade de coluna colapsada"
+      - dc9f6cc4: "feat: Drag-and-drop cards dentro da mesma coluna"
+      - de1eb9d7: "feat: 3 opções de altura de linha (view planilha)"
+      - 25a49d8a: "feat: Seed coluna 'Falar com o cliente' em boards Design"
+      - 9fae494b: "feat: Feature de log/histórico do board"
+    versao_package_json: "2.1.0"
+    upstream_atual: "v2.1.1 (uma patch atrás)"
+
+  decisoes_operador:
+    deploy_alvo: hostinger-beta (76.13.239.198) — confirmado
+    ticket_form: incluido_no_escopo
+    dados_db: "nao ha dados relevantes — git é fonte de verdade — pode zerar se necessario"
+    caddy: desabilitado_no_compose_override (nginx do host serve)
+    impacto_outros_projetos: ZERO — nao tocar a4tunados-mural, tuninho-ai
+    impacto_dev_codigo: minimo — nao alterar trabalho dele
+    entrega_dev: passar acessos pra usar staging no ciclo de desenvolvimento
+
+  riscos_principais:
+    - "Rebuild demora >5min, downtime do staging" (mitigado: avisar dev antes)
+    - "Ticket-form precisa PLANKA_LIST_ID válido (criar board no Planka primeiro)"
+    - "DB schema pode requerer migration entre versions"
+    - "nginx config quebrar outros projetos (mitigado: nao tocar configs existentes)"
+
+token_rhythm:
+  baseline_inicio_discover: 417249
+  pct_inicio_discover: 41.7
+  estimado_fim_sessao1: ~70%
+  threshold_warn: 70
+  threshold_stop: 75
+  comlurb_buffer: 8
+
+decisoes:
+  - "Modo DDCE_EXPANSIVO_MULTI_SESSOES escolhido por tokens herdados altos + escopo grande"
+  - "DDCE convencional (não card-isolated) — sem card mural anexado"
+  - "Servidor B (hostinger-beta) é o alvo real do deploy — confirmado via DNS reverse + estado real"
+  - "Stack pdview_erp_stagging em hostinger-alfa = ignorar nesta op (cópia paralela quebrada)"
+  - "Reuso 100% da infra do servidor B: nginx config + SSL + compose override + .env"
+  - "Caddy do compose: manter desativado (override hostinger-beta.yml já cuida)"
+  - "Web research adicional + tuninho-qa audits: pendentes para sessão 2 (preservar tokens)"
+  - "Push da branch local ao remote: pendente (vai acontecer na execução do gitflow d'a4 final)"
+
+proximos_passos_sessao2:
+  ordem_recomendada:
+    - "1. Ler 01_1-xp_DISCOVERY_*.md INTEGRALMENTE (autossuficiente — não precisa ler conversa anterior)"
+    - "2. Ler este HANDOFF e 01_1_DISCOVERY_*.md sintético"
+    - "3. Capturar tokens início DEFINE via JSONL"
+    - "4. Web research adicional (4+ buscas — Etapa 5):"
+    - "   - zero-downtime deploy de imagem Docker"
+    - "   - pg_dump em containers Postgres + restore validation"
+    - "   - webhooks/notificação de update pra dev (CI/CD para staging)"
+    - "   - Planka 2.1.0 → 2.1.1 changelog"
+    - "5. Invocar tuninho-qa audit-ambiente + audit-sidecars + audit-discovery"
+    - "6. Iniciar Etapa 6 (DEFINE — plano com fases)"
+    - "7. Mapping requisitos → tarefas (Regra #43): extrair literais do prompt original e mapear"
+    - "8. Etapa 7: criar contracts/qa-contract.yaml + completar estrutura fase_NN/"
+    - "9. Etapa 8: GATE DEFINE com tuninho-qa audit-define + aprovação operador"
+    - "10. Gerar 01_2_DEFINE_PLAN_ + 01_2-xp_DEFINE_PLAN_ (XP bloqueante, ≥200 linhas)"
+    - "11. Decidir: continuar EXECUTION na sessão 2 ou abrir sessão 3"
+
+primeira_acao_sessao2: |
+  Antes de qualquer outra coisa, ler INTEGRALMENTE o arquivo:
+    _a4tunados/_operacoes/prompts/01_1-xp_DISCOVERY_deploy-planka-hostinger-redeploy.md
+
+  Esse arquivo é AUTOSSUFICIENTE — contém todo contexto da sessão 1 verbatim,
+  incluindo decisões, opções descartadas, achados dos agents Explore, respostas
+  do operador e estado real dos servidores.
+
+  Após ler, confirmar com operador: "Li o XP. Resumo: {2-3 frases}. Posso seguir
+  com Etapa 5 + DEFINE?". Aguardar OK antes de prosseguir.
+
+regra_56_vault_escriba:
+  status: SKIP_JUSTIFICADO
+  justificativa: "Vault Escriba (_a4tunados/docs_*) não existe neste projeto — primeira operação DDCE no planka. Sem ADRs, MOC, sessões anteriores para consultar. Regra #56 não aplicável quando vault inexistente. Em ops futuras pós-Comlurb seal, escriba criará vault."
+  proxima_acao: "Sessão de encerramento (Comlurb seal Modo 6 + tuninho-escriba) cria vault inicial em _a4tunados/docs_planka/"
+
+regra_61_gates_auto_aprovados:
+  status: NAO_APLICA
+  justificativa: "Modo INTERATIVO — operador acompanhando turno-a-turno. Gates pausam normalmente."
+
+versionamento_op:
+  semver_skill_ddce_aplicada: 5.0.3
+  ops_suite_aplicada: 5.41.1
+
+contrato_qa:
+  status: NAO_GERADO
+  proxima_acao_sessao2: "Etapa 7 do DEFINE gera contracts/qa-contract.yaml (Regra #31)"

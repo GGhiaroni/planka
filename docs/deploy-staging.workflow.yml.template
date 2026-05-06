@@ -1,0 +1,70 @@
+name: Deploy Staging (hostinger-beta)
+
+# Triggera deploy do staging quando push na branch deploy/staging.
+# Uso: o dev faz "git push origin deploy/staging" e o Actions cuida do resto.
+#
+# Pre-requisitos (configurar uma vez via GitHub UI Settings > Secrets):
+#   - STAGING_DEPLOY_SSH_KEY: private key gerada em /root/.ssh/deploy_planka_actions
+#   - STAGING_DEPLOY_HOST: 76.13.239.198
+#   - STAGING_DEPLOY_USER: root
+#
+# O fluxo:
+#   1. Checkout do branch atual
+#   2. SSH ao servidor B
+#   3. rsync do código para /opt/hostinger-beta/planka/ (preservando .env)
+#   4. Roda /opt/hostinger-beta/planka/scripts/deploy.sh (rebuild + restart + smoke)
+#   5. Smoke test final do runner
+#
+# Em caso de falha: o deploy.sh já tem rollback automático interno (volta imagem pre-deploy).
+
+on:
+  push:
+    branches: [deploy/staging]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync code to server (preserving .env)
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='_a4tunados' \
+            --exclude='.claude' \
+            --exclude='.mcp.json' \
+            --exclude='.vscode' \
+            --exclude='docker-compose.hostinger-beta.yml' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }}:/opt/hostinger-beta/planka/
+
+      - name: Run deploy script (build + restart + healthcheck + smoke)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }} \
+            "bash /opt/hostinger-beta/planka/scripts/deploy.sh"
+
+      - name: Final smoke test from runner
+        run: |
+          curl -fsSL -o /dev/null -w "Final smoke: HTTP %{http_code}\n" \
+            https://pdviewerp-stagging.fourtuna.com.br/
+
+      - name: Notify deploy success
+        if: success()
+        run: |
+          echo "✅ Deploy staging concluído"
+          echo "URL: https://pdviewerp-stagging.fourtuna.com.br/"
+          echo "Form: https://form-pdviewerp-stagging.fourtuna.com.br/"
