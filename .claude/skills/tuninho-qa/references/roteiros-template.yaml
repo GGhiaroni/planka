@@ -1,0 +1,125 @@
+# Template canonico de roteiros de QA — Tuninho QA v0.8.1
+#
+# Este arquivo e a base que o modo `create-roteiros` usa para gerar
+# `fase_NN/qa/roteiros.yaml` em cada fase de uma operacao DDCE.
+#
+# Cada tarefa do `_2_DEFINE_PLAN_` vira uma entrada deste tipo.
+#
+# RECOMENDACAO v0.8.1 (L4.2, Op 05): quando a acao de UI a testar tem
+# endpoint HTTP equivalente (ex: save config → POST /api/admin/*,
+# toggle flag → PATCH /api/settings/*), PREFIRA `browser_evaluate` com
+# `fetch` em vez de `browser_click`. Motivos:
+#   (a) Combobox/dropdown virtualizado pode causar frame reparse e
+#       crash do chrome-headless CDP mid-session (L4.1).
+#   (b) `browser_evaluate` permite assert no return value do endpoint,
+#       validacao mais forte que so screenshot.
+#   (c) Menos passos = roteiro mais rapido e reproduzivel.
+# Reserve `browser_click` pra validacoes que DEPENDEM de event binding
+# client-side (onClick dispara analytics `logEvent`, hotkey binding,
+# focus-trap de modal, drag-and-drop). Ver `playwright-stability.md`
+# pra procedimento de respawn CDP se o browser morrer mid-session.
+
+operacao: 23                    # Numero da operacao (preenchido pelo create-roteiros)
+fase: 6                         # Numero da fase
+fase_nome: "Frontend completo"  # Nome da fase
+auditor: tuninho-qa
+versao_template: "0.1.0"
+
+roteiros:
+
+  - tarefa: T6.1
+    objetivo: "ClaudeWorkspace multi-repo (add/remove/make primary)"
+
+    pre_condicoes:
+      - "dev server rodando em http://localhost:3000"
+      - "backend rodando em http://localhost:1337"
+      - "migration 20260413110000_expand_board_claude_workspace_to_jsonb.js aplicada"
+      - "branch atual: feat/op23-claudecode-back-v3"
+      - "usuario admin@a4tunados.com.br logado"
+      - "board de teste com claudeWorkspace inicialmente vazio"
+
+    passos_playwright:
+      - acao: navigate
+        url: "http://localhost:3000"
+      - acao: wait_for
+        seletor: "[data-testid=board-list]"
+      - acao: click
+        seletor: "text=Board de Teste Op 23"
+      - acao: click
+        seletor: "[data-testid=board-settings-button]"
+      - acao: click
+        seletor: "text=Preferences"
+      - acao: screenshot
+        path: "T6.1_workspace_inicial_vazio.png"
+        descricao: "Estado inicial — workspace vazio, sem repos listados"
+      - acao: click
+        seletor: "text=Add repo"
+      - acao: select
+        seletor: "[data-testid=workspace-selector]"
+        valor: "/Users/vcg/development/test-workspace-1"
+      - acao: click
+        seletor: "text=Adicionar"
+      - acao: screenshot
+        path: "T6.1_workspace_apos_add_primeiro.png"
+        descricao: "1 workspace listado, deve ter badge PRIMARY"
+      - acao: click
+        seletor: "text=Add repo"
+      - acao: select
+        seletor: "[data-testid=workspace-selector]"
+        valor: "/Users/vcg/development/test-workspace-2"
+      - acao: click
+        seletor: "text=Adicionar"
+      - acao: screenshot
+        path: "T6.1_workspace_dois_repos.png"
+        descricao: "2 workspaces, primeiro PRIMARY, segundo nao"
+      - acao: click
+        seletor: "[data-testid=workspace-make-primary]:nth(1)"
+      - acao: screenshot
+        path: "T6.1_workspace_segundo_primary.png"
+        descricao: "Reorder — segundo agora PRIMARY, primeiro nao"
+      - acao: click
+        seletor: "[data-testid=workspace-remove]:nth(0)"
+      - acao: screenshot
+        path: "T6.1_workspace_apos_remove.png"
+        descricao: "1 workspace restante, que deve estar PRIMARY"
+
+    criterios_sucesso:
+      - "Estado inicial: lista vazia, botao 'Add repo' visivel"
+      - "Apos add 1: 1 entrada, badge 'PRIMARY' visivel"
+      - "Apos add 2: 2 entradas, primeiro com 'PRIMARY', segundo sem"
+      - "Apos make primary no 2: badge migra para o segundo"
+      - "Apos remove primeiro: 1 entrada com PRIMARY"
+      - "Console do browser sem erros"
+      - "Network sem 500/404 nas chamadas /api/boards/{id}"
+
+    criterios_bloqueio:
+      - "Modal de erro 500 visivel"
+      - "Texto 'undefined' ou '{x}' em qualquer campo"
+      - "Layout quebrado (overflow, elementos fora do viewport)"
+      - "Console error 'TypeError' ou 'Cannot read property'"
+      - "Chamada API retorna 404 ou 500"
+      - "Badge PRIMARY ausente apos add"
+      - "Reorder nao atualiza UI sem refresh"
+
+    interpretacao_esperada:
+      T6.1_workspace_inicial_vazio: "Tela de Preferences do board, secao Claude Workspace vazia com mensagem 'Nenhum repo configurado' e botao 'Add repo' centralizado"
+      T6.1_workspace_apos_add_primeiro: "1 entrada listada com path completo, badge verde 'PRIMARY' a direita, botoes 'Remove' e 'Make primary' (este desabilitado pois ja e primary)"
+      T6.1_workspace_dois_repos: "2 entradas listadas verticalmente, primeira com badge PRIMARY, segunda sem. Botao 'Make primary' habilitado na segunda"
+      T6.1_workspace_segundo_primary: "Mesma lista, badge migrou. Notar reorder visual ou indicador de mudanca"
+      T6.1_workspace_apos_remove: "1 entrada restante (a que era a segunda), com badge PRIMARY automaticamente"
+
+    re_validacao:
+      apos_correcao: "Re-rodar todos os passos Playwright + interpretar todos os screenshots novamente"
+
+  # ... (mais tarefas seguindo o mesmo padrao)
+
+# Padrao de naming dos screenshots:
+# T{N}.{M}_{descricao_curta}.png
+# Sempre fullPage: true
+# Sempre salvar em fase_{NN}/evidencias/
+
+# Padrao de criterios:
+# - sucesso: positivos (algo deve aparecer / funcionar)
+# - bloqueio: negativos (algo NAO pode aparecer)
+
+# Toda alteracao de roteiro = bump de versao do template + comentario explicando

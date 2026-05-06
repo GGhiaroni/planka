@@ -1,0 +1,276 @@
+# Contract Pattern v1.0.0 — Card Isolated Template (multi-skill aggregator)
+#
+# Template para contratos gerados pelo fluxo `card/feat/*` ou `card/fix/*`
+# (DDCE v4.4.0 / fix-suporte v2.1.0). Runtime copia este template para:
+#   `_a4tunados/_operacoes/cards/{cardId}_{slug}/contracts/card-isolated-contract.yaml`
+#
+# Variante do contract-spec.md v1.0.0 que suporta MULTIPLAS skills contratadas
+# (delivery-cards, DDCE/fix-suporte, QA, devops-hostinger, mural, comlurb, escriba).
+# Diferencas vs schema base:
+#   1. `contracted: "multi"` — contrato agrega varias skills
+#   2. Campo `executor` por obligation (qual skill entrega cada uma)
+#   3. Bloco `heuristic` — registro da decisao automatica DDCE vs FIX
+#   4. `auto_approval_criteria` por obligation autonomous
+#   5. `preconditions` lista em obligations que dependem de estado externo
+#   6. `allowed_paths` no nivel raiz — QA audit-card-isolation valida que
+#      diff card/*..develop toca somente caminhos whitelisted
+
+contract:
+  version: "1.0.0"
+  id: "card-{CARD_ID_SHORT}-isolated-001"   # ex: card-175810-isolated-001
+  contractor: "tuninho-delivery-cards"       # ponto de entrada do fluxo
+  contractor_version: "{DELIVERY_CARDS_VERSION}"
+  contracted: "multi"
+  contracted_skills:                         # lista explicita de skills envolvidas
+    - tuninho-delivery-cards
+    - tuninho-ddce                           # OR tuninho-fix-suporte (exclusivo)
+    - tuninho-qa
+    - tuninho-devops-hostinger
+    - tuninho-mural
+    - tuninho-da-comlurb
+    - tuninho-escriba
+  card_id: "{CARD_ID}"                       # full 19-dig cardId
+  card_title: "{TITULO}"
+  card_slug: "{SLUG}"                        # ex: landing-waitlist
+  fluxo: null                                # DDCE | FIX (setado pos-heuristica)
+  branch: "{BRANCH_NAME}"                    # ex: card/feat/landing-waitlist-175810
+  project: "{NOME_PROJETO}"
+  # Op 138 Card 138 (T3.5 v0.14.0): campo origin OBRIGATORIO. Define o canal
+  # canonical de comunicacao do card. tuninho-qa audit-card-isolation valida.
+  origin: "{ORIGIN}"                         # tuninho-ai | mural-a4tunados (regra de ouro)
+  board: "{BOARD_NAME}"                      # ex: "Dev (tuninho.ai)" | "a4tunados Mural"
+  chat_id: "{CHAT_ID_OR_NULL}"               # numerico no tuninho-ai; null em mural Planka
+  created_at: "{ISO_TS}"
+  status: DRAFT                              # DRAFT | ACTIVE | FULFILLED | BREACHED
+
+acceptance:
+  accepted_at: null
+  accepted_by: null                          # skill que primeiro aceitou (ddce/fix-suporte)
+  accepted_version: null
+
+# v4.5.7: validacao humana antes de Done (Regra Inviolavel #48)
+# Setado quando operador confirma validacao final ("validado", "ok pode fechar", etc)
+# em mensagem na sessao Claude OU comment no mural pos card-result --mark-validating.
+# Pre-check do tuninho-da-comlurb v0.6.0+, tuninho-escriba v3.12.0+ e
+# tuninho-mural card-validated.
+human_validation:
+  validated_at: null                          # ISO timestamp ou null
+  iterations: 0                               # quantos ciclos de ajuste pos-validacao tecnica
+  validation_marker: null                     # frase exata do operador (auditoria)
+
+# Heuristica — registro da decisao automatica DDCE vs FIX (script route-fluxo.py v1.4.0)
+heuristic:
+  executed_at: null
+  decision: null                             # DDCE | FIX | AMBIGUOUS | WAIVED
+  confidence: null                           # 0.0-1.0 (limiar ≥0.70)
+  score_ddce: null
+  score_fix: null
+  signals_matched:
+    fix: []                                  # keywords detectadas (peso 1)
+    ddce: []
+    structure_fix: []                        # stacktrace, reproducao (peso 2)
+    structure_ddce: []                       # criterios aceite, requisitos (peso 2)
+  description_length: null
+  files_estimated: null
+  systems_estimated: null
+  blockers_ddce_detected: []                 # refactor, arquitetura, >2 sistemas
+  algorithm_version: "v1.4.0"
+  operator_override: null                    # null | "DDCE" | "FIX" (sempre vence)
+
+obligations:
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTATICAS — sempre presentes, criadas na Etapa 0 do DDCE/fix-suporte
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - id: "OBL-CARD-PARSE"
+    point: "Etapa 0.1"
+    gate: null
+    mode: "parse"
+    executor: "tuninho-delivery-cards"
+    args: "parse --card {CARD_ID}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-HEURISTIC-DECISION"
+    point: "Etapa 0.2"
+    gate: null
+    mode: "heuristic"
+    executor: "tuninho-delivery-cards"
+    args: "route-fluxo --card {CARD_ID}"
+    blocking: true
+    type: static
+    confidence_threshold: 0.70
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-BRANCH-CREATE"
+    point: "Etapa 0.3"
+    gate: null
+    mode: "branch"
+    executor: "tuninho-ddce OR tuninho-fix-suporte"
+    args: "git checkout -b card/{feat|fix}/{slug}-{id6} develop"
+    preconditions:
+      - "git fetch origin develop succeeded"
+      - "working tree clean (git status --short empty)"
+      - "no existing branch with same name"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-CONTEXT-LOAD"
+    point: "Etapa 0.4"
+    gate: null
+    mode: "context-briefing"
+    executor: "tuninho-ddce OR tuninho-fix-suporte"
+    args: "load-card-context --card {CARD_ID}"
+    blocking: false
+    type: static
+    status: PENDING
+    delivery: null
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # DINAMICAS — adicionadas apos heuristica decidir DDCE ou FIX
+  # (operador/runtime adiciona via amendment, mutualmente exclusivas)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # Se decision=DDCE:
+  #   OBL-DDCE-DISCOVER  (Etapas 1-5)
+  #   OBL-DDCE-DEFINE    (Etapas 6-8)
+  #   OBL-DDCE-EXECUTION (Etapas 9-14, agrupadas — card-isolated roda em 1 fase unica)
+  #
+  # Se decision=FIX:
+  #   OBL-FIX-TRIAGE          (Stage 1b, severidade P2 default)
+  #   OBL-FIX-INVESTIGATION   (Stage 2-3)
+  #   OBL-FIX-PARECER         (Stage 5)
+  #   OBL-FIX-EXECUCAO        (Stage 6-8)
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # QA GATES — sempre presentes
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - id: "OBL-QA-GATE-FASE-01"
+    point: "Etapa 14 DDCE OR Stage 7 fix"
+    gate: "FASE-01"
+    mode: "audit-gate-fase"
+    executor: "tuninho-qa"
+    args: "audit-gate-fase --operacao card-isolated --fase 01"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-QA-CARD-ISOLATION"
+    point: "GATE FINAL (Etapa 16 DDCE OR Stage 11 fix)"
+    gate: "FINAL"
+    mode: "audit-card-isolation"
+    executor: "tuninho-qa"
+    args: "audit-card-isolation --contract {CONTRACT_PATH}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+    validation_criteria:
+      - "branch matches regex ^card/(feat|fix)/[a-z0-9-]{1,40}-\\d{6}$"
+      - "contract compliance_pct == 100%"
+      - "git diff develop...HEAD touches only allowed_paths"
+      - "git log card/..develop shows 0 commits (develop intacto)"
+
+  - id: "OBL-QA-GATE-FINAL"
+    point: "Etapa 16"
+    gate: "FINAL"
+    mode: "audit-gate-final"
+    executor: "tuninho-qa"
+    args: "audit-gate-final --contract {CONTRACT_PATH}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # DEPLOY + PR + MURAL + COMLURB
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - id: "OBL-DEPLOY-AUTONOMOUS"
+    point: "Etapa 15 DDCE OR Stage 9 fix"
+    gate: null
+    mode: "deploy"
+    executor: "tuninho-devops-hostinger"
+    args: "deploy {host} --autonomous --card-id {CARD_ID}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+    auto_approval_criteria:
+      risk_level_max: "MEDIUM"
+      playwright_smoke_required: true
+      curl_smoke_required: true
+      rollback_on_fail: true
+      log_path_pattern: "_a4tunados/deploys/{host}/autonomous-{TS}.log"
+      report_path_pattern: "_a4tunados/deploys/{host}/autonomous-report-{TS}.md"
+
+  - id: "OBL-PR-CREATE"
+    point: "Etapa 15.3"
+    gate: null
+    mode: "pr"
+    executor: "tuninho-escriba OR direct-bash-fallback"
+    args: "git push -u origin {branch} && gh pr create --base develop --head {branch}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-MURAL-EXPORT"
+    point: "Etapa 15.5"
+    gate: null
+    mode: "card-result"
+    executor: "tuninho-mural"
+    args: "card-result --card {CARD_ID} --results {RESULTS_PATH} --pr-url {PR_URL} --contract-path {CONTRACT_PATH} --mark-done"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+    preconditions:
+      - "healthCheck PASS"
+      - "deploy OBL-DEPLOY-AUTONOMOUS delivered with result=PASS"
+      - "OBL-PR-CREATE delivered with pr_url populated"
+
+  - id: "OBL-COMLURB-SEAL"
+    point: "Etapa 16"
+    gate: null
+    mode: "card-close-session"
+    executor: "tuninho-da-comlurb"
+    args: "--mode card-close-session --card {CARD_ID} --branch {BRANCH}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+amendments: []
+
+# allowed_paths: whitelist para QA audit-card-isolation
+# Runtime expande {CARD_DIR} conforme cardId/slug do card atual
+allowed_paths:
+  - "src/"
+  - "tests/"
+  - "docs/"
+  - "public/"
+  - "scripts/"
+  - "_a4tunados/_operacoes/cards/{CARD_ID}_*/"
+  - "_a4tunados/docs_*/cards/{CARD_ID}_*/"
+  # Arquivos auto-gerados do Next (ignorar em diff):
+  - "next-env.d.ts"
+  - "package.json"
+  - "package-lock.json"
+
+summary:
+  total: null                    # preenchido pos-heuristica (estaticas + dinamicas + QA + deploy chain)
+  delivered: 0
+  pending: null
+  skipped: 0
+  waived: 0
+  blocking_pending: null
+  compliance_pct: "0%"
+  last_updated: "{ISO_TS}"

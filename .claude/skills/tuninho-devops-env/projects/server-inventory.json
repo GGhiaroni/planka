@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0.0",
+  "server_name": "hostinger-alfa",
+  "server_ip": "31.97.243.191",
+  "last_scan": "2026-05-01T15:00:00Z",
+  "scan_source": "pm2 jlist + nginx sites-enabled + docker ps (SSH real-time)",
+  "scanned_by": "tuninho-devops-env v1.2.0 (manual update via /root/development/a4tunados-ops-suite workspace, feat/coder-7ftr-sidecar)",
+  "projects": {
+    "tuninho-ide-web": {
+      "port": 3847,
+      "domain": "tuninhoideweb.fourtuna.com.br",
+      "process_manager": "pm2",
+      "service_name": "tuninho-ide-web",
+      "status": "online",
+      "stack": "Express + WS + node-pty + tmux + SQLite",
+      "cwd": "/opt/hostinger-alfa/tuninho-ide-web",
+      "catalog_path": "projects/tuninho-ide-web/env-catalog.json",
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/tuninho-ide-web/config.md"
+    },
+    "claude-sessions-service": {
+      "port": 3848,
+      "domain": "tuninhoideweb.fourtuna.com.br (path-based /api/sessions)",
+      "process_manager": "pm2",
+      "service_name": "claude-sessions-service",
+      "status": "online",
+      "stack": "Express 4 + ws 8 + better-sqlite3 + @anthropic-ai/claude-agent-sdk V1 + mural-mcp subprocess stdio",
+      "cwd": "/opt/hostinger-alfa/claude-sessions-service",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/claude-sessions-service/config.md",
+      "added_in": "Op 23 sessao 03 MARCO 5",
+      "dependencies": [
+        "services/mural-api-client (file: ref)",
+        "mcp-servers/mural-mcp (subprocess stdio)"
+      ],
+      "mcp_tools_count": 25,
+      "op_23_status": "v2.0.0 ready in branch feat/op23-claudecode-back-v3 (not deployed yet)"
+    },
+    "maestrofieldmanager": {
+      "port": 3001,
+      "domain": "maestro.fourtuna.com.br",
+      "process_manager": "pm2",
+      "service_name": "maestrofieldmanager",
+      "status": "online",
+      "stack": "Next.js + Prisma + SQLite",
+      "cwd": "/opt/hostinger-alfa/maestrofieldmanager",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/maestrofieldmanager/config.md",
+      "sidecar_status": "created in Op 23 sessao 03 MARCO 5"
+    },
+    "chooz_2026": {
+      "port": 3849,
+      "domain": "chooz2026.fourtuna.com.br",
+      "process_manager": "pm2",
+      "service_name": "chooz_2026",
+      "status": "online",
+      "stack": "Next.js",
+      "cwd": "/opt/hostinger-alfa/chooz_2026/app",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/chooz_2026/config.md",
+      "sidecar_status": "created in Op 23 sessao 03 MARCO 5"
+    },
+    "familygames": {
+      "port": 3030,
+      "domain": "familysundaygames.fourtuna.com.br",
+      "process_manager": "pm2",
+      "service_name": "familygames",
+      "status": "online",
+      "stack": "Node.js (verificar stack exato)",
+      "cwd": "/opt/hostinger-alfa/familygames",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/familygames/config.md",
+      "added_in": "Op 23 sessao 03 MARCO 5",
+      "sidecar_status": "created in Op 23 sessao 03 MARCO 5"
+    },
+    "weplus_prototipo": {
+      "port": 3850,
+      "domain": "weplus.a4tunados.com.br",
+      "process_manager": "pm2",
+      "service_name": "weplus",
+      "status": "online",
+      "stack": "Node.js / prototype (verificar stack exato)",
+      "cwd": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/weplus_prototipo",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/weplus_prototipo/config.md",
+      "added_in": "Op 23 sessao 03 MARCO 5",
+      "sidecar_status": "created in Op 23 sessao 03 MARCO 5",
+      "note": "CWD esta dentro de workspaces-tuninho-ide/victorgaudio/ \u2014 deploy via self-hosting (editado dentro do proprio tuninho-ide-web)"
+    },
+    "orquestravoadora": {
+      "port": 3040,
+      "domain": "oficinaorquestravoadora2026.55jam.com.br",
+      "domain_dev": "dev.oficinaorquestravoadora2026.55jam.com.br (redirect)",
+      "process_manager": "systemd",
+      "service_name": "orquestravoadora",
+      "status": "active",
+      "stack": "Flask + Gunicorn + Python",
+      "cwd": "(systemd ExecStart \u2014 ver unit file)",
+      "catalog_path": null,
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger-alfa/projects/orquestravoadora/config.md",
+      "sidecar_status": "created in Op 23 sessao 03 MARCO 5",
+      "note": "Unico projeto com systemd ao inves de PM2. Python/Flask via gunicorn."
+    },
+    "tuninho.ai": {
+      "port": null,
+      "note": "tuninho.ai NAO roda em hostinger-alfa \u2014 e workspace de dev. Prod em hostinger-beta (76.13.239.198), porta 3100, dominio dev.tuninho.ai, PM2 'tuninho-ai' fork mode",
+      "domain": "dev.tuninho.ai",
+      "process_manager": "pm2 (em hostinger-beta)",
+      "service_name": "tuninho-ai",
+      "status": "workspace-only (dev)",
+      "stack": "Next.js 16.2.4 + React 19 + Tailwind 4 + better-sqlite3 + @anthropic-ai/claude-agent-sdk + firebase + next-firebase-auth-edge",
+      "cwd": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/tuninho.ai",
+      "prod_server": "hostinger-beta",
+      "catalog_path": "projects/tuninho.ai/env-catalog.json",
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger/projects/hostinger-beta/tuninho-ai/config.md",
+      "warnings_active": [
+        "GCP-ORG-1",
+        "NODE-ENV-1"
+      ],
+      "added_in": "2026-04-22 bootstrap via tuninho-devops-env v1.1.0"
+    },
+    "openvscode-ide": {
+      "port": 4180,
+      "port_bind": "127.0.0.1:4180:4180",
+      "port_internal": 3000,
+      "domain": "dev.ide.tuninho.ai",
+      "process_manager": "docker compose",
+      "service_name": "openvscode-ide-oauth2 (entry) + openvscode-ide (backend)",
+      "status": "running",
+      "stack": "Gitpod openvscode-server (gitpod/openvscode-server:latest) + oauth2-proxy (quay.io/oauth2-proxy/oauth2-proxy:latest) com GitHub OAuth restrito a victorgaudio",
+      "cwd": "/docker/openvscode-ide",
+      "catalog_path": "projects/openvscode-ide/env-catalog.json",
+      "sidecar_path": ".claude/skills/tuninho-devops-hostinger/projects/hostinger-alfa/openvscode-ide/config.md",
+      "ports_path": ".claude/skills/tuninho-portas-em-automatico/projects/openvscode-ide/config.md",
+      "auth": "GitHub OAuth (oauth2-proxy) — sessao 168h, allowed_users=[victorgaudio]",
+      "added_in": "2026-05-01 substitui coder-7ftr (testado e descartado no mesmo dia); OAuth adicionado no mesmo dia substituindo connection token. Via /root/development/a4tunados-ops-suite workspace.",
+      "note": "Topologia 2-camadas: nginx -> oauth2-proxy (4180, publico via loopback) -> openvscode (3000, expose-only na rede do compose, NAO exposto no host). Volume: openvscode-ide_workspace. Diretorio /docker/coder-7ftr/ + volumes coder-7ftr_coder-data e coder-7ftr_db preservados pra rollback."
+    }
+  },
+  "port_registry": {
+    "22": "sshd",
+    "53": "systemd-resolved",
+    "80": "nginx (HTTP)",
+    "443": "nginx (HTTPS/SSL)",
+    "3001": "maestrofieldmanager (prod)",
+    "3030": "familygames (prod)",
+    "3040": "orquestravoadora (gunicorn systemd)",
+    "3847": "tuninho-ide-web (prod)",
+    "3848": "claude-sessions-service (prod)",
+    "3849": "chooz_2026 (prod)",
+    "3850": "weplus (prod)",
+    "4180": "openvscode-ide oauth2-proxy (prod, docker compose, EXCECAO range 3000-3999 — porta canonica do oauth2-proxy upstream; backend openvscode em :3000 e expose-only na rede docker)",
+    "9222": "chromium CDP (tuninho-ide-web prod)",
+    "9223": "chromium CDP (tuninho-ide-web prod session 2)",
+    "9224": "playwright MCP",
+    "19222": "chromium CDP (tuninho-ide-web dev) [on-demand]"
+  },
+  "next_available_port": 3851,
+  "port_ranges": {
+    "http_services": "3000-3999",
+    "cdp_prod": "9222-9299",
+    "cdp_dev": "19222-19299"
+  },
+  "corrections_applied_in_sessao_03_marco_5": [
+    {
+      "field": "port 3848",
+      "was": "tuninho-ide-web (dev) [on-demand]",
+      "now": "claude-sessions-service (prod)",
+      "reason": "Op 20 criou claude-sessions-service em 3848. Inventory estava desatualizado desde 2026-04-03."
+    },
+    {
+      "field": "projects.claude-sessions-service",
+      "was": "ausente",
+      "now": "adicionado com stack completa + mcp_tools_count + dependencies",
+      "reason": "Projeto existe em PM2 desde Op 20 mas nunca foi catalogado"
+    },
+    {
+      "field": "projects.familygames",
+      "was": "ausente",
+      "now": "adicionado via pm2 jlist + nginx sites-enabled",
+      "reason": "Projeto existe em PM2 mas nunca foi catalogado"
+    },
+    {
+      "field": "projects.weplus_prototipo",
+      "was": "ausente",
+      "now": "adicionado via pm2 jlist + nginx sites-enabled",
+      "reason": "Projeto existe em PM2 mas nunca foi catalogado (self-hosting dentro de workspaces-tuninho-ide)"
+    },
+    {
+      "field": "last_scan",
+      "was": "2026-04-03T00:00:00Z",
+      "now": "2026-04-13T10:45:00Z",
+      "reason": "Scan fresco via SSH real-time"
+    },
+    {
+      "field": "next_available_port",
+      "was": 3850,
+      "now": 3851,
+      "reason": "3850 agora ocupado por weplus"
+    }
+  ],
+  "shared_path_risks": [
+    "WORKSPACES_DIR=/opt/hostinger-alfa/tuninho-ide-web/workspaces e compartilhado por varios projetos (tuninho-ide-web, claude-sessions-service, weplus via symlink)",
+    "weplus self-hosting: seu cwd esta em workspaces-tuninho-ide/victorgaudio/weplus_prototipo (editado pelo proprio tuninho-ide-web \u2014 risco de race condition em git pull durante deploy)"
+  ],
+  "next_scan_recommendations": [
+    "Verificar stack completa de familygames (descobri nome mas nao a stack)",
+    "Verificar stack completa de weplus (Flask/Express? React/Vanilla?)",
+    "Extrair paths exatos do orquestravoadora.service (systemd unit)",
+    "Catalogar SSL certificates (certbot certificates) para checar expiry de cada dominio",
+    "Verificar ecosystem.config.cjs de cada projeto para pegar env vars (NAO os valores \u2014 so nomes)"
+  ]
+}

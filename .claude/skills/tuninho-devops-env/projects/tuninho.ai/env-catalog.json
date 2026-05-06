@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "tuninho.ai",
+  "project_path": "/opt/hostinger-beta/tuninho-ai",
+  "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/tuninho.ai",
+  "git_remote": "https://github.com/victorgaudio/tuninho.ai.git",
+  "stack": "Next.js 16.2.4 + React 19 + TypeScript 5 + Tailwind 4 + better-sqlite3 12 + @anthropic-ai/claude-agent-sdk + next-firebase-auth-edge + firebase-admin",
+  "deploy_mode": "REMOTE",
+  "last_scan": "2026-04-22T13:05:00Z",
+  "scan_mode": "bootstrap",
+  "scan_performed_by": "tuninho-devops-env v1.1.0",
+  "environments": {
+    "production": {
+      "server": "hostinger-beta",
+      "server_ip": "76.13.239.198",
+      "port": 3100,
+      "node_env": "production",
+      "process_manager": "pm2",
+      "pm2_service": "tuninho-ai",
+      "pm2_instances": 1,
+      "pm2_mode": "fork",
+      "db_path": "/opt/hostinger-beta/tuninho-ai/data/tuninho.db",
+      "db_engine": "better-sqlite3",
+      "db_pragmas": "journal_mode=WAL, foreign_keys=ON, synchronous=NORMAL",
+      "domain": "dev.tuninho.ai",
+      "nginx_config": "/etc/nginx/sites-available/tuninho-ai.conf (no hostinger-beta, nao local)",
+      "ssl": { "status": "active", "provider": "letsencrypt", "location": "hostinger-beta" },
+      "health_endpoint": "https://dev.tuninho.ai/",
+      "env_vars": {
+        "NODE_ENV": "production",
+        "PORT": "3100",
+        "DATABASE_PATH": "[absolute-prod-path]",
+        "NEXT_PUBLIC_FIREBASE_API_KEY": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_APP_ID": "[secret]",
+        "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID": "[optional-secret]",
+        "FIREBASE_ADMIN_CREDENTIALS_B64": "[secret-base64-json]",
+        "JWT_SECRET": "[secret]",
+        "ANTHROPIC_MODEL": "claude-opus-4-7 or configurable",
+        "CLAUDE_CODE_EXECUTABLE_PATH": "/opt/hostinger-beta/tuninho-ai/node_modules/@anthropic-ai/claude-agent-sdk/vendor/claude-code/cli.js"
+      },
+      "env_vars_sensitive": [
+        "NEXT_PUBLIC_FIREBASE_API_KEY",
+        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+        "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+        "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
+        "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+        "NEXT_PUBLIC_FIREBASE_APP_ID",
+        "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID",
+        "FIREBASE_ADMIN_CREDENTIALS_B64",
+        "JWT_SECRET"
+      ],
+      "data_dirs": ["data/"],
+      "log_dirs": ["logs/"],
+      "startup_config": "ecosystem.config.js",
+      "deploy_via": "tuninho-devops-hostinger v3.2.0+ (sidecar: projects/hostinger-beta/tuninho-ai/config.md)"
+    },
+    "development": {
+      "server": "hostinger-alfa (self-hosting)",
+      "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/tuninho.ai",
+      "port_suggestion": 3000,
+      "port_status_at_scan": "nao-alocada (pode usar 3000 default Next.js dev)",
+      "node_env": "development",
+      "process_manager": "manual (npm run dev)",
+      "tmux_prefix": "tundev_",
+      "cdp_port_start": 19222,
+      "db_path": "data/tuninho.db",
+      "db_engine": "better-sqlite3",
+      "startup_script": "npm run dev (Next.js Turbopack)",
+      "env_vars": {
+        "NODE_ENV": "development (mas ver NODE-ENV-1 warning!)",
+        "DATABASE_PATH": "data/tuninho.db (relativo)"
+      },
+      "env_file": ".env.local"
+    }
+  },
+  "isolation_matrix": {
+    "ports": {
+      "http": { "prod": 3100, "dev": "3000 (sugerido, nao fixado)" },
+      "note": "prod e dev rodam em servidores diferentes (hostinger-beta vs hostinger-alfa), zero conflito direto"
+    },
+    "tmux": {
+      "prefix": { "prod": "N/A (hostinger-beta sem tmux prefixes a4tunados)", "dev": "tundev_" }
+    },
+    "database": {
+      "path": {
+        "prod": "/opt/hostinger-beta/tuninho-ai/data/tuninho.db",
+        "dev": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/tuninho.ai/data/tuninho.db"
+      },
+      "isolation_strategy": "paths absolutos distintos em servidores distintos"
+    },
+    "shared_state_risks": [
+      "Google OAuth: popup em producao (dev.tuninho.ai) nao funciona automatizado no Playwright (credential stuffing prevention) — usar custom-token-bypass roteiro tuninho-qa v0.7.1 (auth-e2e-bypass-popup.yaml)",
+      "Firebase project: 1 projeto unico sob org 4tuna.com.br — compartilhado entre dev e prod (nao ha firebase dev/prod separados)",
+      "@anthropic-ai/claude-agent-sdk: o binario cli.js vive em node_modules, pode ter permissao -x perdida apos npm ci (fix automatico em tuninho-devops-hostinger v3.1.0+ Stage 5.8b)"
+    ]
+  },
+  "api_keys": {
+    "firebase_project": {
+      "org": "4tuna.com.br",
+      "gotcha": "GCP-ORG-1: gerar service account JSON requer desativar 2 policies (projeto + org legada)",
+      "fix_reference": "_a4tunados/_operacoes/projetos/03_go-live/qa/_12_QA_LICOES_RETROALIMENTACAO.md L3.1"
+    },
+    "anthropic": {
+      "sdk": "@anthropic-ai/claude-agent-sdk",
+      "version": "^0.2.84",
+      "gotcha": "binario pode vir em variante musl em host glibc; fix automatico em devops-hostinger v3.1.0+ Stage 5.8b"
+    }
+  },
+  "webhooks": [],
+  "external_dependencies": {
+    "node": "22.22.0",
+    "npm": "10.9.4",
+    "pm2": "6.0.14",
+    "python3": "3.13.7",
+    "gh": "2.89.0",
+    "nginx": "1.28.0 (hostinger-alfa para outros projetos, hostinger-beta para tuninho.ai)",
+    "certbot": "hostinger-beta (nao local)"
+  },
+  "warnings": [
+    {
+      "id": "GCP-ORG-1",
+      "severity": "INFO",
+      "source": "tuninho-devops-env v1.1.0",
+      "detected_at": "2026-04-22T13:05:00Z",
+      "message": "Projeto usa Firebase (NEXT_PUBLIC_FIREBASE_PROJECT_ID detectado). Se for gerar service account JSON pela primeira vez sob a org 4tuna.com.br, verifique que AMBAS as policies estejam desativadas (projeto + org legada iam.disableServiceAccountKeyCreation).",
+      "reference": "_a4tunados/_operacoes/projetos/03_go-live/qa/_12_QA_LICOES_RETROALIMENTACAO.md L3.1"
+    },
+    {
+      "id": "NODE-ENV-1",
+      "severity": "ATENCAO",
+      "source": "tuninho-devops-env v1.1.0",
+      "detected_at": "2026-04-22T13:05:00Z",
+      "detected_value": "NODE_ENV=production + npm config get omit=dev",
+      "message": "Sessao Claude Code tem NODE_ENV=production setado globalmente. `npm install` neste workspace de dev silenciosamente pula devDependencies (typescript, eslint, tailwind). Use `env -u NODE_ENV npm install --include=dev` ou prefixe com `NODE_ENV=development`. Workaround ja registrado no sidecar hostinger-beta/tuninho-ai/config.md.",
+      "reference": "_a4tunados/_operacoes/projetos/03_go-live/qa/_12_QA_LICOES_RETROALIMENTACAO.md L3.2"
+    }
+  ],
+  "server_resolution": {
+    "hostinger-alfa": "workspace de desenvolvimento (cwd atual)",
+    "hostinger-beta": "target de producao — registrado em _a4tunados/deploys/servers-registry.yaml"
+  }
+}

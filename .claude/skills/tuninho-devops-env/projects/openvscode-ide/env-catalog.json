@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "openvscode-ide",
+  "project_path": "/docker/openvscode-ide",
+  "env_file": "/docker/openvscode-ide/.env",
+  "env_file_perm": "600",
+  "process_manager": "docker compose",
+  "vendor": "Gitpod openvscode-server (gitpod/openvscode-server:latest) + oauth2-proxy (quay.io/oauth2-proxy/oauth2-proxy:latest)",
+  "replaces": "coder-7ftr (descontinuado 2026-05-01)",
+  "auth": {
+    "type": "GitHub OAuth via oauth2-proxy",
+    "allowed_users": ["victorgaudio"],
+    "callback_url": "https://dev.ide.tuninho.ai/oauth2/callback",
+    "session_duration_hours": 168
+  },
+  "environments": {
+    "production": {
+      "port_host": 4180,
+      "port_internal": 3000,
+      "port_bind": "127.0.0.1:4180:4180",
+      "domain": "dev.ide.tuninho.ai",
+      "access_url": "https://dev.ide.tuninho.ai",
+      "public_vars": [],
+      "sensitive_vars": [
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "OAUTH2_PROXY_COOKIE_SECRET"
+      ]
+    }
+  },
+  "persistence": {
+    "type": "docker volumes",
+    "volumes": [
+      {
+        "name": "openvscode-ide_workspace",
+        "purpose": "User workspace (/home/workspace inside openvscode container)"
+      }
+    ],
+    "backup_automated": false
+  },
+  "isolation": {
+    "single_instance": true,
+    "shared_port": false,
+    "shared_db": false,
+    "shared_docker_network": false,
+    "shared_oauth_app": false
+  },
+  "added_in": "2026-05-01 substitui coder-7ftr; OAuth adicionado no mesmo dia substituindo connection token. Via /root/development/a4tunados-ops-suite workspace (feat/coder-7ftr-sidecar)."
+}

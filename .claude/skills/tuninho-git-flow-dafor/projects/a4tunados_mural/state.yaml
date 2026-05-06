@@ -1,0 +1,68 @@
+# State sidecar for a4tunados_mural — atualizado 2026-05-05 (deploy/{env} convention v0.6.0)
+project: a4tunados_mural
+repo: victorgaudio/a4tunados_mural
+trunk_branches:
+  - master  # historico — atualmente nao recebe deploys (NAO eh trunk de prod)
+  - develop  # integracao ativa, base de novas operacoes
+release_strategy: trunk-based-with-deploy-pointers  # NOVO em v0.6.0
+last_sync_check: "2026-05-05T11:35:00Z"
+
+state:
+  develop:
+    head: faadd9e5
+    last_merge: "PR #12 (card 1767832826142525239 — terminal MVP iframe)"
+    description: "Trunk de integracao. Reflete o estado de codigo aprovado pelos PRs."
+  master:
+    head: 36a76ce3
+    description: "Branch historica. NAO recebe deploys — release_strategy mudou em 2026-05-05 para usar deploy/{env} pointers"
+
+deploy_branches:
+  staging:
+    branch: deploy/staging
+    head: faadd9e5
+    deployed_at: "2026-05-05T10:56:50Z"
+    server: "165.227.51.173 (DigitalOcean)"
+    url: "https://stage.mural.a4tunados.com.br"
+    pm2_name: "a4tunados-staging"
+    bundle_hash: "index-CnsxguUl.js"
+    delta_to_develop: 0
+    notes: "Deploy completo (server src + client dist + 2 migrations novas aplicadas via knex migrate:latest sobre DB que era replica fiel de prod)"
+  production:
+    branch: deploy/production
+    head: faadd9e5
+    deployed_at: "2026-05-05T11:35:00Z"
+    server: "167.99.24.138 (DigitalOcean)"
+    url: "https://mural.a4tunados.com.br"
+    pm2_name: "a4tunados-mural"
+    bundle_hash: "index-DNJNJXDB.js"
+    delta_to_develop: 0
+    notes: "Primeiro deploy via convencao deploy/{env} v0.6.0. Atomic swap completo (server src + client dist + 2 migrations novas). Downtime ~90s. Backup pre-deploy: /root/backups/prod-pre-full-deploy-20260505-113304/. Bug encontrado e corrigido durante deploy: lodepng native module precisava rebuild full (npm rebuild SEM args). Validacao Playwright autenticada confirmou Card 2 (Terminal button) renderizando em prod."
+
+# Convencao deploy/{env} (v0.6.0+):
+# - feat/* origina de develop
+# - PR + merge-ff feat/* -> develop
+# - Build commit develop + atomic deploy -> ambiente
+# - git branch -f deploy/{env} <commit> + push --force-with-lease (atualiza ponteiro)
+# - Apos validacao: merge-ff deploy/{env} -> develop (noop se develop ja descendente)
+# - Hotfix em ambiente: feat/hotfix-X de deploy/{env} -> deploy/{env} -> ff back to develop
+
+cards_active:
+  - id: "1767717024143771189"
+    title: "Restringir UI ClaudeWorkspace a admins do mural"
+    branch: card/feat/restringir-ui-claudeworkspace--771189
+    pr: https://github.com/victorgaudio/a4tunados_mural/pull/11
+    pr_merged_at: "2026-05-05T03:49:39Z"
+    deployed_in: ["staging (full bundle de develop@faadd9e5)"]
+    status: EM_VALIDACAO
+  - id: "1767832826142525239"
+    title: "Terminal Terminal no back do card"
+    branch: card/feat/terminal-terminal-no-back-do-card-525239
+    pr: https://github.com/victorgaudio/a4tunados_mural/pull/12
+    pr_merged_at: "2026-05-05T04:00:19Z"
+    deployed_in: ["staging (full bundle de develop@faadd9e5)"]
+    status: EM_VALIDACAO
+
+next_actions:
+  - "Operador valida ambos cards em https://stage.mural.a4tunados.com.br"
+  - "Apos validacao: autorizar deploy em prod (que criara deploy/production branch nesse momento)"
+  - "Bumps de skills: tuninho-git-flow-dafor v0.5.2 -> v0.6.0 + tuninho-devops-mural-devprod v3.2.2 -> v3.3.0"

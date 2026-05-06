@@ -16,5 +16,9 @@
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  }
+  },
+  "git.scanRepositories": [],
+  "git.ignoredRepositories": [
+    "_a4tunados/.cache/a4tunados-ops-suite"
+  ]
 }
