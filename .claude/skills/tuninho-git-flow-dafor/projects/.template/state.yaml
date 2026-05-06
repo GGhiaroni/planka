@@ -1,0 +1,19 @@
+project: "{PROJECT}"
+generated_at: "{TIMESTAMP}"
+generated_by: tuninho-git-flow-dafor v0.1.0
+
+protected_branches:
+  - main
+  - develop
+merge_strategy_to_develop: ff_only
+release_strategy: trunk-based
+
+state:
+  develop_head: null
+  develop_last_merge_at: null
+  main_head: null
+  main_last_merge_at: null
+
+active_branches: []
+parallel_open_branches: []
+archived_branches: []

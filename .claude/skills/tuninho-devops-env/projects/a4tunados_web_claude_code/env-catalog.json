@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "a4tunados_web_claude_code",
+  "project_alias_for": "tuninho-ide-web",
+  "alias_reason": "a4tunados_web_claude_code e o nome do repo GitHub / workspace dev. Em producao o servico se chama tuninho-ide-web. Mesmo projeto, dois nomes em contextos diferentes. Use o catalogo principal em projects/tuninho-ide-web/env-catalog.json — este arquivo apenas redireciona.",
+  "canonical_catalog": "projects/tuninho-ide-web/env-catalog.json",
+  "last_scan": "2026-05-02T16:35:00Z",
+  "scan_mode": "alias",
+  "git_remote": "https://github.com/victorgaudio/a4tunados_web_claude_code.git",
+  "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/a4tunados_web_claude_code",
+  "active_warnings": [
+    {
+      "code": "GIT-TOKEN-IN-ORIGIN",
+      "severity": "critical-security",
+      "detected_at": "2026-05-02T16:35:00Z",
+      "context": "URL do 'git remote origin' contem token OAuth gho_* em texto claro. Token aparece em logs, history, scripts. Recomendado: trocar pra SSH OU usar credential helper. Comando: git remote set-url origin https://github.com/victorgaudio/a4tunados_web_claude_code.git",
+      "status": "DEFERRED_TO_DISCOVERY",
+      "deferred_reason": "Op 18 Etapa 0.5: operador pediu opcoes (SSH vs HTTPS+helper vs gh auth) com pros e contras. Sera apresentado na Entrevista 1 do Discovery."
+    }
+  ],
+  "resolved_warnings": [
+    {
+      "code": "SHELL-PORT-1",
+      "resolved_at": "2026-05-02T17:18:00Z",
+      "resolution": "Op 18 Etapa 0.5: dev.sh agora faz `unset PORT` antes do `export PORT=3851`. Limpa heranca do shell host."
+    },
+    {
+      "code": "NODE-ENV-1",
+      "resolved_at": "2026-05-02T17:18:00Z",
+      "resolution": "Op 18 Etapa 0.5: dev.sh agora faz `unset NODE_ENV` antes do `export NODE_ENV=development`. Limpa heranca do shell host."
+    },
+    {
+      "code": "PORT-3848-CONFLICT",
+      "resolved_at": "2026-05-02T17:18:00Z",
+      "resolution": "Op 18 Etapa 0.5: dev.sh realocado pra porta 3851 (proxima livre conforme server-inventory). CLAUDE.md atualizado com nota de migracao + warnings."
+    }
+  ]
+}

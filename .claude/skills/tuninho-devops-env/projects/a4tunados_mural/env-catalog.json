@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "a4tunados_mural",
+  "project_path": "/Users/vcg/development/a4tunados/a4tunados_mural",
+  "workspace_path": null,
+  "stack": "Sails.js 1.5.14 + React 18.2.0 + Vite 6.3.5 + PostgreSQL 16 + Socket.io + Knex.js 3.1.0 + Redux-ORM",
+  "last_scan": "2026-04-13T10:45:00Z",
+  "scan_mode": "bootstrap",
+  "scanned_by": "tuninho-devops-env v1.0.1 (Op 23 sessao 03 MARCO 5)",
+  "env_type": "local-dev",
+  "environments": {
+    "production": {
+      "port": 1337,
+      "node_env": "production",
+      "process_manager": "pm2",
+      "pm2_service": "a4tunados-mural",
+      "db_path": "postgres://postgres@127.0.0.1:5432/planka",
+      "db_engine": "PostgreSQL 17 native (nao Docker)",
+      "domain": "mural.a4tunados.com.br",
+      "server_ip": "167.99.24.138",
+      "server_provider": "DigitalOcean (droplet)",
+      "nginx_config": "/etc/nginx/sites-enabled/mural.conf",
+      "ssl": { "status": "active", "provider": "Let's Encrypt", "auto_renew": "certbot timer" },
+      "health_endpoint": "https://mural.a4tunados.com.br/",
+      "env_vars_sensitive": ["SECRET_KEY", "DEFAULT_ADMIN_PASSWORD", "DATABASE_URL", "INTERNAL_ACCESS_TOKEN"],
+      "data_dirs": ["server/public/", "server/db/"],
+      "log_dirs": ["/var/log/pm2/"],
+      "startup_config": "ecosystem.config.js (script: 'app.js' — NAO 'npm start')",
+      "last_deploy": "2026-03-26 (v2.3.0)",
+      "migration_count": 30,
+      "migration_table": "migration"
+    },
+    "staging": {
+      "port": 1337,
+      "node_env": "production",
+      "process_manager": "pm2",
+      "pm2_service": "a4tunados-staging",
+      "db_path": "postgres://postgres@127.0.0.1:5432/planka",
+      "db_engine": "PostgreSQL 17 native",
+      "domain": "stage.mural.a4tunados.com.br",
+      "server_ip": "165.227.51.173",
+      "reserved_ip": "167.172.9.25",
+      "server_provider": "DigitalOcean (droplet)",
+      "nginx_config": "/etc/nginx/sites-enabled/staging.conf",
+      "ssl": { "status": "active", "provider": "Let's Encrypt", "expiry": "2026-05-27" },
+      "health_endpoint": "https://stage.mural.a4tunados.com.br/"
+    },
+    "development": {
+      "port": 1337,
+      "port_client": 3000,
+      "node_env": "development",
+      "startup_script": "npm start (concurrently: server nodemon + client vite)",
+      "db_path": "postgres://vcg@localhost:5432/planka",
+      "db_engine": "PostgreSQL 16 native (Homebrew) — brew services postgresql@16",
+      "db_user": "vcg",
+      "db_name": "planka",
+      "env_vars": {
+        "BASE_URL": "http://localhost:3000",
+        "DATABASE_URL": "postgresql://vcg@localhost/planka",
+        "SECRET_KEY": "[defined in server/.env]",
+        "DEFAULT_ADMIN_EMAIL": "admin@a4tunados.com.br",
+        "DEFAULT_ADMIN_PASSWORD": "[defined in server/.env — never commit]",
+        "DEFAULT_ADMIN_NAME": "Admin A4tunados",
+        "DEFAULT_ADMIN_USERNAME": "admin",
+        "INTERNAL_ACCESS_TOKEN": "[defined in server/.env — Op 23]"
+      },
+      "env_vars_sensitive": ["SECRET_KEY", "DEFAULT_ADMIN_PASSWORD", "INTERNAL_ACCESS_TOKEN"],
+      "current_state": {
+        "server_pid": 13648,
+        "server_port": 1337,
+        "server_cwd": "/Users/vcg/development/a4tunados/a4tunados_mural/server",
+        "client_pid": 91988,
+        "client_port": 3001,
+        "client_cwd": "/Users/vcg/development/a4tunados/a4tunados_mural/client",
+        "note": "client port 3001 em vez do default 3000 — Vite escolheu alt port porque 3000 ja tinha outro vite rodando (PID 46483 de uma instancia anterior de dev concurrent)"
+      }
+    }
+  },
+  "isolation_matrix": {
+    "ports": {
+      "http_backend_local": { "dev": 1337, "prod": 1337 },
+      "http_client_local": { "dev": 3000, "alt": 3001 },
+      "db": { "dev": 5432, "prod": 5432, "staging": 5432 }
+    },
+    "database": {
+      "engine_version": { "dev": "PG16 Homebrew", "prod": "PG17 native", "staging": "PG17 native" },
+      "connection": { "dev": "localhost (IPv4 only via 127.0.0.1 recommended)", "prod": "127.0.0.1 (IPv6 falha)" }
+    },
+    "shared_state_risks": [
+      "port 3001 no macOS pode ter multiplos Vite concorrentes (foi o caso durante o scan)",
+      "port 5432 compartilhado entre brew postgresql@16 e outros clientes locais",
+      "DEFAULT_ADMIN_PASSWORD em server/.env deve ser diferente entre dev/staging/prod"
+    ]
+  },
+  "external_dependencies": {
+    "node": "v22.20.0 (local dev)",
+    "npm": "10.9.3",
+    "psql": "16.9 (Homebrew)",
+    "postgres_prod": "17 (native on DO droplet)"
+  },
+  "api_keys": {
+    "_note": "catalogo nao guarda valores — apenas nomes",
+    "openai_api_key": "per-user (stored in user_account.openai_api_key, encrypted)",
+    "internal_access_token": "server-wide (env INTERNAL_ACCESS_TOKEN — Op 23)"
+  },
+  "webhooks": [
+    "per-board notification services configured via UI (Apprise — 100+ providers)"
+  ],
+  "related_skills": [
+    "tuninho-devops-mural-devprod (deploy dev → prod DO)",
+    "tuninho-delivery-cards (cards do mural)",
+    "tuninho-mural (CLI client)",
+    "tuninho-devops-env (este catalogo)"
+  ],
+  "cards_count": 4,
+  "notes_for_next_scan": [
+    "Verificar se port 3001 ainda tem 2 vites ou so 1",
+    "Validar que INTERNAL_ACCESS_TOKEN esta em server/.env apos qualquer deploy",
+    "Monitorar last_deploy das producoes staging e prod DO"
+  ]
+}

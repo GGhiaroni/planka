@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "tuninho-ide-web",
+  "project_path": "/opt/hostinger-alfa/tuninho-ide-web",
+  "workspace_path": "/opt/hostinger-alfa/tuninho-ide-web/workspaces/a4tunados_web_claude_code",
+  "stack": "Express + WS + node-pty + tmux + better-sqlite3",
+  "last_scan": "2026-04-03T00:00:00Z",
+  "scan_mode": "bootstrap",
+
+  "environments": {
+    "production": {
+      "port": 3847,
+      "node_env": "production",
+      "process_manager": "pm2",
+      "pm2_service": "tuninho-ide-web",
+      "pm2_config": "/opt/hostinger-alfa/tuninho-ide-web/ecosystem.config.cjs",
+      "tmux_prefix": "tuninho_",
+      "cdp_port_start": 9222,
+      "db_path": "/opt/hostinger-alfa/tuninho-ide-web/data/tuninho.db",
+      "db_engine": "better-sqlite3",
+      "domain": "tuninhoideweb.fourtuna.com.br",
+      "nginx_config": "/opt/hostinger-alfa/nginx/sites/tuninho-ide-web.conf",
+      "ssl": {
+        "status": "active",
+        "provider": "letsencrypt",
+        "cert_path": "/etc/letsencrypt/live/tuninhoideweb.fourtuna.com.br/",
+        "expiry": "2026-06-28"
+      },
+      "health_endpoint": "http://localhost:3847/",
+      "env_vars": {
+        "PORT": "3847",
+        "NODE_ENV": "production",
+        "JWT_SECRET": "[auto-generated in data/.jwt-secret]",
+        "SHELL": "/bin/bash",
+        "GITHUB_CLIENT_ID": "[from data/.github-oauth]",
+        "GITHUB_CLIENT_SECRET": "[from data/.github-oauth]"
+      },
+      "env_vars_sensitive": ["JWT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
+      "data_dirs": ["data/"],
+      "log_dirs": ["logs/"]
+    },
+    "development": {
+      "port": 3848,
+      "node_env": "development",
+      "process_manager": "manual (node --watch via dev.sh)",
+      "tmux_prefix": "tundev_",
+      "cdp_port_start": 19222,
+      "db_path": "data/tuninho.db",
+      "db_engine": "better-sqlite3",
+      "domain": null,
+      "nginx_config": null,
+      "ssl": null,
+      "health_endpoint": "http://localhost:3848/",
+      "env_vars": {
+        "PORT": "3848",
+        "NODE_ENV": "development",
+        "TUNINHO_DEV": "1",
+        "TUNINHO_SESSION_PREFIX": "tundev",
+        "TUNINHO_CDP_PORT_START": "19222"
+      },
+      "env_vars_sensitive": [],
+      "startup_script": "dev.sh",
+      "data_dirs": ["data/"]
+    }
+  },
+
+  "isolation_matrix": {
+    "ports": {
+      "http": { "prod": 3847, "dev": 3848 },
+      "cdp_start": { "prod": 9222, "dev": 19222 },
+      "websocket": { "prod": 3847, "dev": 3848 }
+    },
+    "tmux": {
+      "prefix": { "prod": "tuninho_", "dev": "tundev_" }
+    },
+    "database": {
+      "path": {
+        "prod": "/opt/hostinger-alfa/tuninho-ide-web/data/tuninho.db",
+        "dev": "{workspace}/data/tuninho.db"
+      }
+    },
+    "shared_state_risks": [
+      "GitHub OAuth credentials (data/.github-oauth copiado de prod para dev)",
+      "Claude CLI global (/usr/local/bin/claude — instalacao compartilhada)",
+      "Chromium headless-shell (binario compartilhado, portas isoladas)"
+    ]
+  },
+
+  "api_keys": {
+    "github_oauth": {
+      "client_id_var": "GITHUB_CLIENT_ID",
+      "client_secret_var": "GITHUB_CLIENT_SECRET",
+      "shared_between_envs": true,
+      "source": "data/.github-oauth",
+      "notes": "Dev copia de prod se nao existir localmente"
+    }
+  },
+
+  "webhooks": [],
+
+  "external_dependencies": {
+    "node": { "version": "22.22.0", "path": "/usr/bin/node" },
+    "npm": { "version": "10.9.2", "path": "/usr/bin/npm" },
+    "pm2": { "version": "6.0.14", "path": "/usr/local/bin/pm2" },
+    "tmux": { "version": "3.5a", "path": "/usr/bin/tmux" },
+    "nginx": { "version": "1.28.0", "path": "/usr/sbin/nginx" },
+    "claude_cli": { "global": true, "path": "/usr/local/bin/claude" },
+    "chromium": { "headless": true, "purpose": "Playwright MCP + Browser Panel" },
+    "sqlite3": { "path": "/usr/bin/sqlite3", "purpose": "DB backup (.backup)" }
+  },
+
+  "cross_projects": [
+    { "name": "maestrofieldmanager", "port": 3001, "domain": "maestro.fourtuna.com.br", "pm2": "maestrofieldmanager" },
+    { "name": "chooz_2026", "port": 3849, "domain": "chooz2026.fourtuna.com.br", "pm2": "chooz_2026" },
+    { "name": "orquestravoadora", "port": 3040, "domain": "dev.oficinaorquestravoadora2026.55jam.com.br", "systemd": "orquestravoadora" }
+  ],
+
+  "deploy": {
+    "mode": "SELF_DEPLOY",
+    "script": "deploy.sh",
+    "method": "rsync incremental + PM2 restart",
+    "backup_dir": "/opt/hostinger-alfa/backups/",
+    "downtime": "~3-5s",
+    "auto_reconnect": true
+  }
+}

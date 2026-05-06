@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "orquestravoadora",
+  "project_path": "/opt/hostinger-alfa/orquestravoadora",
+  "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/orquestravoadoraoficina2026",
+  "stack": "Flask + Gunicorn + systemd + Nginx + SQLite + Firebase Auth",
+  "last_scan": "2026-04-06T17:00:00Z",
+  "scan_mode": "bootstrap",
+
+  "environments": {
+    "production": {
+      "port": 3040,
+      "python_version": "3.13.7",
+      "flask_env": "production",
+      "process_manager": "systemd",
+      "systemd_service": "orquestravoadora.service",
+      "systemd_config": "/etc/systemd/system/orquestravoadora.service",
+      "env_file": "/opt/hostinger-alfa/orquestravoadora/.env.production",
+      "db_path": "/opt/hostinger-alfa/orquestravoadora/orquestravoadora.db",
+      "db_engine": "sqlite",
+      "domain": "oficinaorquestravoadora2026.55jam.com.br",
+      "nginx_config": "/etc/nginx/sites-available/orquestravoadora-prod.conf",
+      "ssl": {
+        "status": "active",
+        "provider": "letsencrypt",
+        "expiry": "2026-07-01"
+      },
+      "health_endpoint": "https://oficinaorquestravoadora2026.55jam.com.br/",
+      "graceful_restart": "systemctl reload orquestravoadora",
+      "venv_path": "/opt/hostinger-alfa/orquestravoadora/venv",
+      "log_dirs": ["/opt/hostinger-alfa/orquestravoadora/logs/"],
+      "data_dirs": [],
+      "env_vars_sensitive": [
+        "ASAAS_API_KEY",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_WEBHOOK_AUTH_TOKEN",
+        "FIREBASE_SERVICE_ACCOUNT_PATH"
+      ]
+    },
+    "development": {
+      "port": 3041,
+      "python_version": "3.13.7",
+      "flask_env": "development",
+      "process_manager": "manual",
+      "startup_command": "source venv/bin/activate && python app.py",
+      "env_file": ".env",
+      "db_path": "orquestravoadora.db",
+      "db_engine": "sqlite",
+      "domain": "localhost",
+      "health_endpoint": "http://localhost:3041/",
+      "venv_path": "venv",
+      "notes": "load_dotenv(override=True) necessario — IDE herda PORT=3847 do sistema"
+    }
+  },
+
+  "isolation_matrix": {
+    "ports": {
+      "http": { "prod": 3040, "dev": 3041 }
+    },
+    "database": {
+      "path": {
+        "prod": "/opt/hostinger-alfa/orquestravoadora/orquestravoadora.db",
+        "dev": "./orquestravoadora.db"
+      },
+      "notes": "DB prod eh source of truth para DATA. DB dev criado limpo pelo init_db(). NUNCA copiar dev sobre prod."
+    },
+    "env_file": {
+      "prod": "/opt/hostinger-alfa/orquestravoadora/.env.production",
+      "dev": ".env"
+    },
+    "shared_state_risks": [
+      "Firebase projeto jamov-95fda compartilhado (mesmo auth, mesmos users)",
+      "Google Sheets compartilhado (mesmo spreadsheet, risco de escrita duplicada em dev)",
+      "Asaas API prod compartilhada (dev usa mesma chave — cuidado com cobrancas reais)",
+      "Twilio compartilhado (WHATSAPP_PRODUCTION_MODE=false eh safety lock)"
+    ]
+  },
+
+  "api_keys": {
+    "firebase": "jamov-95fda (shared dev/prod)",
+    "asaas": "prod key (sem sandbox separado)",
+    "twilio": "shared (safety lock via WHATSAPP_PRODUCTION_MODE)",
+    "google_sheets": "baile55-forms SA (shared)"
+  },
+
+  "webhooks": [
+    {
+      "type": "asaas",
+      "endpoint": "https://oficinaorquestravoadora2026.55jam.com.br/webhook/asaas",
+      "status": "active",
+      "notes": "Apenas prod recebe webhooks (dominio publico)"
+    },
+    {
+      "type": "twilio_whatsapp",
+      "endpoint": "https://oficinaorquestravoadora2026.55jam.com.br/webhook/whatsapp",
+      "status": "active",
+      "notes": "Apenas prod recebe webhooks"
+    }
+  ],
+
+  "cross_project_health": [
+    { "name": "tuninho-ide-web", "port": 3847, "domain": "tuninhoideweb.fourtuna.com.br" },
+    { "name": "maestrofieldmanager", "port": 3001, "domain": "maestro.fourtuna.com.br" },
+    { "name": "chooz_2026", "port": 3849, "domain": "chooz2026.fourtuna.com.br" }
+  ]
+}

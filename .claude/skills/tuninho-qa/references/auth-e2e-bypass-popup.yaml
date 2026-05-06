@@ -1,0 +1,119 @@
+---
+# Roteiro reusable — Auth E2E bypass do popup OAuth (Firebase/Google)
+#
+# Criado em 2026-04-22 a partir da L3.6 da Op 03 go-live tuninho.ai.
+#
+# Problema: Google Sign-In popup detecta browsers headless/automatizados e recusa
+# autenticacao (credential stuffing prevention). Playwright MCP mesmo com CDP de
+# Chrome real NAO conclui o fluxo OAuth quando a conta de teste exige 2FA ou quando
+# o Google classifica o browser como suspeito.
+#
+# Solucao: Custom Token Bypass. O servidor gera um ID token via Admin SDK, o browser
+# usa ele no endpoint /api/auth/signin via Bearer header, o backend exerce TODO o
+# fluxo server-side (upsert DB, getMetadata, setAuthCookies) como se fosse um login
+# real. Unica diferenca: `sign_in_provider="custom"` vs `"google.com"` no ID token
+# (irrelevante para logica de role na maioria dos projetos).
+#
+# Este roteiro e invocado quando o tuninho-qa precisa validar fluxos pos-login
+# (onboarding, dashboard, permissoes) em projetos que usam Firebase Auth + Google
+# OAuth como unico provider.
+#
+# Ver:
+#   - _a4tunados/_operacoes/projetos/03_go-live/fase_03/aprendizados.md (L3.6)
+#   - _a4tunados/_operacoes/projetos/03_go-live/qa/_12_QA_LICOES_RETROALIMENTACAO.md
+
+roteiro_nome: auth-e2e-bypass-popup
+aplicavel_a:
+  - "Next.js + Firebase Auth (next-firebase-auth-edge ou firebase-admin)"
+  - "qualquer projeto com Google OAuth como unico provider onde Playwright nao
+     consegue completar o popup por detecao de automation"
+pre_requisitos:
+  - "Projeto tem endpoint `/api/auth/signin` que aceita `Authorization: Bearer <idToken>`"
+  - "Admin SDK configurado no servidor (credentials via env var ou JSON file)"
+  - "Operador pode rodar scripts node no workspace"
+
+passos:
+  1_setup:
+    nome: "Preparar script mint-test-tokens"
+    arquivo: "scripts/mint-test-tokens.mts (ou .ts/.js conforme stack)"
+    conteudo_minimo: |
+      // Usa firebase-admin para:
+      //   1. Criar (ou obter) user de teste: admin.auth().createUser({ uid, email })
+      //   2. Gerar custom token: admin.auth().createCustomToken(uid, claims)
+      //   3. Trocar custom token por ID token via REST:
+      //      POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken
+      //      ?key=${FIREBASE_WEB_API_KEY}
+      //      body: { token: customToken, returnSecureToken: true }
+      //   4. Retornar ID token (JSON) para stdout
+      //
+      // Gerar 2+ tokens para cenarios: user_normal, user_admin, user_sem_metadata
+
+  2_setup:
+    nome: "Preparar script cleanup-test-users"
+    arquivo: "scripts/cleanup-test-users.mts"
+    conteudo_minimo: |
+      // admin.auth().deleteUser(uid) para cada user de teste criado
+      // Pos-validacao, chamar este script para nao poluir o Firebase project
+
+  3_exercer_fluxo:
+    nome: "Exercer /api/auth/signin via Playwright + Bearer header"
+    browser_evaluate: |
+      await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${ID_TOKEN_INJETADO}` }
+      })
+      // Browser aplica Set-Cookie automaticamente (AuthSession cookie assinado)
+      // O server-side exerce: verifyIdToken + upsert no DB + getMetadata +
+      // setAuthCookies<Metadata> (embute metadata no session cookie)
+
+  4_navegar_como_usuario:
+    nome: "Navegar para /, /dashboard, /admin — proxy decide redirect"
+    browser_navigate: "/dashboard"
+    expectativa: "Proxy le o AuthSession cookie (com metadata), valida role, renderiza"
+    screenshot_obrigatorio: true  # audit-user-flow v0.7.0 exige
+
+  5_cleanup:
+    nome: "Executar cleanup-test-users.mts ao final"
+    obrigatorio: true  # evita acumular users de teste no Firebase project
+
+evidencia_minima:
+  - "Screenshot da tela pos-login (nao so o cookie)"
+  - "Response body de /api/auth/signin (sucesso)"
+  - "Response body de endpoint protegido (ex: /api/me) retornando dados do user"
+
+incompatibilidades:
+  - "Providers OAuth que exigem PKCE obrigatorio (impossivel via custom token)"
+  - "Apps que diferenciam comportamento por sign_in_provider='google.com' vs 'custom'
+     (caso raro, mas verificar com grep antes de aplicar)"
+  - "Projetos sem Admin SDK configurado (pre-requisito inviolavel)"
+
+variantes:
+  multi_role:
+    nome: "Validar fluxo por role (admin vs user)"
+    descricao: |
+      Gerar 2+ custom tokens com custom claims diferentes (ex: admin=true).
+      O Admin SDK aceita: admin.auth().createCustomToken(uid, { admin: true })
+      O server-side deve ler claims do ID token (via verifyIdToken) ou do
+      custom claims do user, dependendo da implementacao.
+
+risco:
+  - "Custom tokens tem TTL curto (~1h). Se o roteiro demora, re-gerar."
+  - "NUNCA usar este bypass em prod — so em dev/staging. No prod, o login passa
+     pelo popup real."
+  - "Users de teste criados sem cleanup poluem o Firebase project e podem ser
+     cobrados como MAU (Monthly Active User) no billing."
+
+auditor:
+  tuninho_qa_check: audit-user-flow (v0.7.0+)
+  motivacao: |
+    Antes deste roteiro, audit-user-flow em projetos com Firebase OAuth nao
+    conseguia validar fluxos pos-login em Playwright automatizado. Isso criava
+    uma lacuna de cobertura — gaps como "dashboard quebrado apos login" so
+    eram detectados pelo operador em producao.
+
+referencias:
+  - projeto: tuninho.ai Op 03 (F3 — auth)
+  - aprendizado: fase_03/aprendizados.md (L3.6)
+  - licao_retroativa: qa/_12_QA_LICOES_RETROALIMENTACAO.md
+  - firebase_docs: https://firebase.google.com/docs/auth/admin/create-custom-tokens
+  - identitytoolkit_rest: https://cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/signInWithCustomToken
