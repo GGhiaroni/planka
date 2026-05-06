@@ -57,8 +57,9 @@ if [ "$HTTP_CODE" != "200" ]; then
   exit 3
 fi
 
-# Restart ticket-form se .env mudou (idempotente — restart so afeta este service)
-log "Bonus: restart ticket-form para reler .env"
-docker compose $COMPOSE_BASE up -d --no-deps ticket-form 2>/dev/null || log "(ticket-form skip)"
+# Rebuild + restart ticket-form (necessario quando codigo do form mudou — sem
+# --build, fixes em ticket-form/src/ nao chegam ao container).
+log "Bonus: rebuild + restart ticket-form para aplicar codigo novo + reler .env"
+docker compose $COMPOSE_BASE up -d --build --no-deps ticket-form 2>/dev/null || log "(ticket-form skip)"
 
 log "DEPLOY OK ✓ — staging em https://pdviewerp-stagging.fourtuna.com.br/"
