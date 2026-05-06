@@ -43,18 +43,18 @@ async function getToken() {
 async function createCardInList(listId, name, descricao) {
   const token = await getToken();
 
+  const body = { type: 'project', name, position: 65536 };
+  if (descricao && String(descricao).trim().length > 0) {
+    body.description = descricao;
+  }
+
   const res = await fetch(`${PLANKA_URL}/api/lists/${listId}/cards`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      type: 'project',
-      name,
-      position: 65536,
-      description: descricao,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (res.status === 401) {
