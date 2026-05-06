@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "planka",
+  "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/planka",
+  "project_path": "AUTO_PENDING",
+  "stack": "Node.js (package.json) Docker (Dockerfile) Docker Compose",
+  "deploy_mode": "AUTO_PENDING",
+  "last_scan": "2026-05-06T12:38:10Z",
+  "scan_mode": "auto-skeleton",
+  "auto_scan_version": "1.0.0",
+  "environments": {
+    "production": {
+      "port": "AUTO_PENDING",
+      "node_env": "production",
+      "process_manager": "AUTO_PENDING",
+      "tmux_prefix": "AUTO_PENDING",
+      "startup_script": "AUTO_PENDING",
+      "domain": "AUTO_PENDING",
+      "env_vars": {},
+      "env_vars_sensitive": []
+    },
+    "development": {
+      "port": "AUTO_PENDING",
+      "node_env": "development",
+      "tmux_prefix": "AUTO_PENDING",
+      "startup_script": "AUTO_PENDING",
+      "env_vars": {}
+    }
+  },
+  "isolation_matrix": "AUTO_PENDING",
+  "warnings": [],
+  "api_keys": {},
+  "webhooks": [],
+  "external_dependencies": {},
+  "particularities": [],
+  "co_located_services": [],
+  "_auto_scan_findings": {
+    "git_remote": "https://REDACTED@github.com/GGhiaroni/planka.git",
+    "env_files_found": [
+      ".env.example"
+    ],
+    "env_keys_detected": [
+      "ADMIN_EMAIL",
+      "ADMIN_NAME",
+      "ADMIN_PASSWORD",
+      "ADMIN_USERNAME",
+      "CONTACT_REASONS",
+      "FORM_DOMAIN",
+      "LETSENCRYPT_EMAIL",
+      "PLANKA_CHAMADOS_LIST_ID",
+      "PLANKA_DOMAIN",
+      "PLANKA_FORM_EMAIL",
+      "PLANKA_FORM_PASSWORD",
+      "PLANKA_LIST_ID",
+      "POSTGRES_PASSWORD",
+      "PRIORITY_LABELS",
+      "SECRET_KEY"
+    ],
+    "package_scripts": {
+      "client:build": "npm run build --prefix client",
+      "client:lint": "npm run lint --prefix client",
+      "client:lint:files": "npm run lint:files --prefix client --",
+      "client:start": "npm start --prefix client",
+      "client:test": "npm test --prefix client",
+      "docker:build": "docker build -t planka .",
+      "gv": "npm i --package-lock-only --ignore-scripts && genversion --source . --template server/version-template.ejs server/version.js && genversion --source . --template client/version-template.ejs client/src/version.js",
+      "postinstall": "npm i --prefix server && npm i --prefix client",
+      "lint": "npm run server:lint && npm run client:lint",
+      "prepare": "husky",
+      "server:build": "npm run build --prefix server",
+      "server:console": "npm run console --prefix server",
+      "server:db:create-admin-user": "npm run db:create-admin-user --prefix server",
+      "server:db:init": "npm run db:init --prefix server",
+      "server:db:migrate": "npm run db:migrate --prefix server",
+      "server:db:seed": "npm run db:seed --prefix server",
+      "server:db:upgrade": "npm run db:upgrade --prefix server",
+      "server:lint": "npm run lint --prefix server",
+      "server:lint:files": "npm run lint:files --prefix server --",
+      "server:start": "npm start --prefix server",
+      "server:start:prod": "npm run start:prod --prefix server",
+      "server:swagger:generate": "npm run swagger:generate --prefix server",
+      "server:test": "npm test --prefix server",
+      "start": "concurrently -n server,client \"npm run server:start\" \"npm run client:start\"",
+      "test": "npm run server:test && npm run client:test"
+    },
+    "docker_compose_ports": [
+      1000,
+      3000,
+      3001
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "familygames",
+  "project_path": "/opt/hostinger-alfa/familygames",
+  "workspace_path": "/opt/hostinger-alfa/workspaces-tuninho-ide/victorgaudio/familygames",
+  "stack": "Node.js 22 + Express 5.2 + Socket.io 4.8 + qrcode (vanilla JS/CSS, sem bundler, sem DB)",
+  "deploy_mode": "SELF_DEPLOY",
+  "last_scan": "2026-05-03T20:46:00Z",
+  "scan_mode": "bootstrap",
+  "environments": {
+    "production": {
+      "port": 3030,
+      "node_env": "production",
+      "process_manager": "pm2",
+      "pm2_service": "familygames",
+      "pm2_id": 6,
+      "pm2_pid": 527313,
+      "pm2_status": "online",
+      "tmux_prefix": "n/a",
+      "domain": "familysundaygames.fourtuna.com.br",
+      "public_url": "https://familysundaygames.fourtuna.com.br",
+      "nginx_config": "/etc/nginx/sites-enabled/familygames.conf",
+      "nginx_features": ["socket.io location dedicado", "proxy_read_timeout 86400 (WebSocket)"],
+      "ssl": {
+        "status": "active",
+        "issuer": "Lets Encrypt",
+        "expiry": "2026-07-03T04:32:54Z"
+      },
+      "health_endpoint": "http://localhost:3030/",
+      "env_vars": {
+        "NODE_ENV": "production",
+        "PORT": "3030",
+        "PUBLIC_URL": "https://familysundaygames.fourtuna.com.br"
+      },
+      "env_vars_sensitive": [],
+      "data_dirs": [],
+      "log_dirs": ["/opt/hostinger-alfa/familygames/logs/"],
+      "startup_config": "/opt/hostinger-alfa/familygames/ecosystem.config.cjs",
+      "env_file": "/opt/hostinger-alfa/familygames/.env.production"
+    },
+    "development": {
+      "port": "indefinido (sem ecosystem.config.cjs no workspace)",
+      "node_env": "development",
+      "tmux_prefix": "tundev_ (compartilhado com outros workspaces)",
+      "startup_recommended": "PORT=3030 npm start (ou PORT=4000 se 3030 conflitar com prod)",
+      "warning": "Sem dev.sh ou ecosystem dev. Default `npm start` herda PORT=3847 do shell (SHELL-PORT-1).",
+      "env_vars": {}
+    }
+  },
+  "isolation_matrix": {
+    "ports": {
+      "http": {
+        "prod": 3030,
+        "dev": "OVERRIDE necessario (default conflita com tuninho-ide-web 3847)"
+      }
+    },
+    "tmux": {
+      "prefix": {
+        "prod": "n/a (PM2)",
+        "dev": "tundev_ ou nao-tmux"
+      }
+    },
+    "database": {
+      "engine": "none (state em memoria)",
+      "prod": "n/a",
+      "dev": "n/a"
+    },
+    "shared_state_risks": [
+      "SHELL-PORT-1: shell pai (sessao Claude) tem PORT=3847 do tuninho-ide-web host. `npm start` no workspace sem PORT explicito vai tentar bind em 3847 (que ja esta ocupado por tuninho-ide-web prod). EADDRINUSE garantido.",
+      "Codigo gera QR Code com IP da interface de rede. Em workspace, vai mostrar IP do servidor publico (31.97.243.191) em vez do dominio. Em prod, ecosystem seta PUBLIC_URL para corrigir."
+    ]
+  },
+  "warnings": [
+    {
+      "code": "SHELL-PORT-1",
+      "severity": "high",
+      "title": "Shell PORT colide com .env.production",
+      "shell_port": "3847",
+      "env_port": "3030",
+      "mitigation": "Rodar dev SEMPRE com PORT explicito: `PORT=4000 npm start` (ou outro free). NUNCA `npm start` puro neste workspace.",
+      "source_lesson": "tuninho-devops-env v1.2.0 L2.2 Op 05"
+    }
+  ],
+  "api_keys": {},
+  "webhooks": [],
+  "external_dependencies": {
+    "node": "v22.22.0",
+    "npm": "10.9.4",
+    "pm2": "6.0.14",
+    "ssl_provider": "Let's Encrypt (certbot)"
+  },
+  "particularities": [
+    "Sem build step, sem bundler, sem TypeScript",
+    "Frontend e vanilla JS/CSS servido como static do Express",
+    "ESM (package.json type=module) - ecosystem precisa ser .cjs",
+    "Socket.io 4.8 - nginx precisa de location /socket.io/ com proxy_read_timeout grande",
+    "QR Code gerado server-side via qrcode npm",
+    "Reconexao automatica de jogadores por nome (localStorage brohin_player_name)"
+  ],
+  "co_located_services": [
+    {"name": "tuninho-ide-web", "port": 3847, "domain": "tuninhoideweb.fourtuna.com.br", "isolation": "porta diferente"},
+    {"name": "weplus", "port": "?", "isolation": "PM2 service distinto"},
+    {"name": "next-server", "port": 3000, "isolation": "outro projeto Next em dev"},
+    {"name": "chrome-headless", "port": 9223, "isolation": "CDP do tuninho-ide-web"}
+  ]
+}

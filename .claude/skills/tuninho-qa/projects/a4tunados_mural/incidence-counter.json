@@ -1,0 +1,147 @@
+{
+  "version": "1.0.0",
+  "project": "a4tunados_mural",
+  "last_updated": "2026-04-13T10:30:00Z (MARCO 4 sessao 03)",
+  "created_in": "Op 23 sessao 03 (claudecode_back_v3)",
+  "description": "Contador de incidencias metricadas por skill x procedimento x tipo de erro. REGRA_MASTER_3 do tuninho-qa v0.5.0. Permite tomada de decisao baseada em metricas: quando uma incidencia atinge threshold, sugerir bump de skill responsavel. Seed inicial com 5 incidencias ja observadas na Op 23.",
+  "thresholds": {
+    "count_minimo_sugerir_bump": 3,
+    "count_promover_severidade": 5,
+    "count_bloquear_operacao": 10
+  },
+  "incidences": [
+    {
+      "id": "OP23-SKILL-BYPASS-SELF",
+      "skill": "tuninho-qa",
+      "procedure": "auto-aplicacao (audit-deploy, audit-escriba, audit-updater)",
+      "error_type": "skill-bypass-self",
+      "count": 3,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 3, "ALTA": 0, "MEDIA": 0, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "Sessao 02 da Op 23: o proprio QA bypassou tuninho-escriba (Write direto no vault), tuninho-devops-hostinger-alfa (documentou deploy como PREPARED em vez de invocar skill), tuninho-updater (registrou push em local-changes.json sem invocar). Justificativa dada: preservar budget. Estado real: 55% usado, 448k tokens livres.",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-qa com Principio 12 + sub-check audit-skill-invocation (FEITO em v0.3.0)"
+      },
+      "status": "RESOLVED_IN_BUMP_v0.3.0",
+      "resolution_notes": "Resolvido em 2026-04-13 com bump tuninho-qa v0.3.0: novo Principio 12 (Skill competente nunca bypassada), Regras Inviolaveis #16/#17, novo sub-check audit-skill-invocation que le o JSONL da sessao."
+    },
+    {
+      "id": "OP23-EVIDENCE-MISSING-PHASES",
+      "skill": "tuninho-ddce",
+      "procedure": "Etapa 11 (Validacao Automatizada Playwright)",
+      "error_type": "evidence-missing",
+      "count": 7,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 7, "ALTA": 0, "MEDIA": 0, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "Op 23 sessao 01 modo autonomo substituiu Playwright por smoke tests em todas as 7 fases. Evidencias PNG vazias em 7/7 fases. Cada fase foi tratada como incidencia independente.",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-ddce com sub-check polimorfico de evidencia bloqueante no GATE FASE (aceita PNG para UI, TXT/JSON para backend)"
+      },
+      "status": "THRESHOLD_REACHED",
+      "resolution_notes": "Parcialmente tratado via tuninho-qa v0.2.0 (sub-check audit-fase com polimorfismo de evidencia). Pendente: promocao para FAIL bloqueante no tuninho-ddce via integration-ddce-pendente.md (planejado v3.10.0 mas precisa operacao futura dedicada)."
+    },
+    {
+      "id": "OP23-TRACKING-GAP-DEVOPS",
+      "skill": "tuninho-devops-env",
+      "procedure": "manutencao server-inventory",
+      "error_type": "tracking-gap-stale",
+      "count": 1,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 0, "ALTA": 1, "MEDIA": 0, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "server-inventory.json desatualizado: 4 de 7 projetos ausentes (claude-sessions-service, familygames, weplus_prototipo, 4tunados_site). Port registry com port 3848 nao documentado. last_scan nao atualizado. Descoberto na sessao 02 da Op 23 quando operador perguntou sobre deploy do claude-sessions-service e QA encontrou discrepancia entre PM2 jlist real vs inventory.",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-devops-env com reminder de re-scan apos cada deploy + hook integration para chamar scan apos tuninho-devops-hostinger-alfa Stage 8"
+      },
+      "status": "WATCHING",
+      "resolution_notes": "Correcao manual planejada no MARCO 5 da sessao 03. Incidencia ficara como WATCHING para detectar se a causa raiz (falta de integracao automatica) reaparece em operacoes futuras."
+    },
+    {
+      "id": "OP23-ASSUMPTION-BOOTSTRAP",
+      "skill": "tuninho-devops-hostinger-alfa",
+      "procedure": "Stage 0 (server-registry check)",
+      "error_type": "assumption-on-missing-state",
+      "count": 1,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 1, "ALTA": 0, "MEDIA": 0, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "Sessao 02 da Op 23: tuninho-qa estava executando tuninho-devops-hostinger-alfa, encontrou que server-registry.json nao existia, e ASSUMIU 'primeiro deploy via skill' sem questionar o paradoxo obvio: como o projeto pode estar online no PM2 (port 3848) se nunca foi deployado? A assumption silenciosa escondeu o tracking gap real. So foi detectada quando o operador perguntou diretamente.",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-devops-hostinger-alfa com Stage 0 reforcado: NUNCA assumir bootstrap quando server-registry ausente se PM2 tem processo com mesmo nome — PARAR e questionar operador"
+      },
+      "status": "THRESHOLD_REACHED",
+      "resolution_notes": "Incidencia e o que gerou o Principio 13 do tuninho-qa (Question proactively / CSI mode). Solucao petrea aplicada no tuninho-qa via Regra Inviolavel #18 + sub-check audit-tracking-coherence. Skill tuninho-devops-hostinger-alfa precisa absorber como check explicito no Stage 0."
+    },
+    {
+      "id": "OP23-MCP-DOC-LYING",
+      "skill": "tuninho-ddce",
+      "procedure": "documentacao operacional (audit spec de mcp tools)",
+      "error_type": "mcp-doc-lying",
+      "count": 1,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 0, "ALTA": 0, "MEDIA": 1, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "Descoberta original: auditoria da sessao 02 reportou que HANDOFF, matriz e sidecar listavam 25 MCP tools com 16 nomes errados. Investigacao no MARCO 4 da sessao 03 revelou que os nomes errados SO existiam no audit spec file (qa/evidencias/mural-mcp-tools-spec.json) — a matriz e o sidecar estavam corretos. O bug era audit spec drift: a tuninho-qa v0.2.0 criou a lista de tools esperadas a partir do planejamento original da Op 23 (antes de inspecionar tools.js). Cobertura 25/25 PASS depois que a spec foi corrigida com os nomes reais via inspecao de tools.js.",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-qa com sub-check audit-mcp-tools reforcado: quando criar expected spec, inspecionar tools.js primeiro, nao o plano. Plano de op pode conter nomes preliminares que mudam durante implementacao."
+      },
+      "status": "RESOLVED_IN_SESSAO_03_MARCO_4",
+      "resolution_notes": "Audit spec file qa/evidencias/mural-mcp-tools-spec.json corrigido na sessao 03 MARCO 4 com os 25 nomes reais do tools.js. Delta documentado em _delta_from_original_spec. Severidade reclassificada de ALTA para MEDIA pois a matriz e o sidecar sempre estiveram corretos — era apenas audit spec drift, nao documentacao de producao errada. Severidade: bug foi apenas no artefato de auditoria, nao em doc de producao. Impacto na producao: ZERO. Licao meta: spec de auditoria deve ser baseada no codigo real, nao no plano da operacao."
+    },
+    {
+      "id": "OP23-MIGRATION-NAME-MISLEADING",
+      "skill": "tuninho-ddce",
+      "procedure": "fase de execucao — criacao de migration",
+      "error_type": "migration-name-misleading",
+      "count": 1,
+      "first_seen": "2026-04-13",
+      "last_seen": "2026-04-13",
+      "severities_distribution": { "CRITICA": 0, "ALTA": 0, "MEDIA": 1, "BAIXA": 0 },
+      "operations": ["Op 23"],
+      "description": "Migration 20260413120000_add_metadata_to_comment_and_action.js tem nome sugerindo alteracoes em comment E action, mas apenas modifica comment. Detectado por audit-migrations da tuninho-qa v0.2.0 via cross-check com information_schema.columns. Entrada retroativa na sessao 03 MARCO 4 (deveria ter sido trackada como incidencia separada na sessao 02 mas foi mencionada apenas na descricao do audit report).",
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bump tuninho-ddce com convencao de naming: migration que toca N tabelas deve listar as N tabelas explicitas OU ter WARNING no header se comportamento diverge do nome. tuninho-qa audit-migrations deve ser obrigatorio para cada fase que adiciona migrations."
+      },
+      "status": "RESOLVED_IN_SESSAO_03_MARCO_4",
+      "resolution_notes": "Header comment da migration expandido com WARNING explicito na sessao 03 MARCO 4. README.md criado em server/db/migrations/ com secao 'Nomes enganosos' documentando convencao 'NAO renomear migration aplicada — adicionar WARNING no header'. Convencao absorvida pela skill como padrao para futuras migrations enganosas."
+    }
+  ],
+  "observations": [
+    "4 de 5 incidencias estao no threshold_reached ou resolved — sinal de que a Op 23 foi uma fonte rica de gap detection",
+    "skill-bypass-self aparece so em tuninho-qa — sinal de que o risco e real quando o QA e novo e ainda nao internalizou seus proprios principios",
+    "evidence-missing aparece em todas as 7 fases de uma unica operacao — tratada como 7 incidencias independentes para forcar threshold (regra de agregacao pode ser refinada em v0.6.0)",
+    "assumption-on-missing-state e mcp-doc-lying sao tipos sutis que escapam de checks de artefato puros — exigem checks funcionais cruzados",
+    "SESSAO 03 MARCO 4: 2 achados (ACHADO 1 MCP tool names + ACHADO 2 migration name enganoso) foram corrigidos. Ambos RESOLVED. Nota importante: ACHADO 1 foi descoberta como 'audit spec drift' — a docs de producao SEMPRE estiveram corretas, so o artefato de auditoria estava errado. Severidade reclassificada de ALTA para MEDIA."
+  ],
+  "resolved_in_sessao_03_marco_4": [
+    {
+      "incidence_id": "OP23-MCP-DOC-LYING",
+      "resolution": "Audit spec file corrigido. Licao meta: audit spec deve ser baseada no codigo real, nao no plano da operacao.",
+      "files_changed": [
+        "_a4tunados/_operacoes/projetos/23_claudecode_back_v3/qa/evidencias/mural-mcp-tools-spec.json",
+        "_a4tunados/_operacoes/projetos/23_claudecode_back_v3/qa/_10_QA_GATE_FINAL.md"
+      ]
+    },
+    {
+      "incidence_id": "OP23-MIGRATION-NAME-MISLEADING",
+      "resolution": "Header comment da migration expandido com WARNING. README.md criado em server/db/migrations/ documentando caso e convencao 'NAO renomear migration aplicada'.",
+      "files_changed": [
+        "server/db/migrations/20260413120000_add_metadata_to_comment_and_action.js",
+        "server/db/migrations/README.md"
+      ]
+    }
+  ]
+}

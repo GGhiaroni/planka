@@ -1,0 +1,111 @@
+# Contract Pattern v1.0.0 — QA Contract Template
+# Gerado pela tuninho-ddce na Etapa 7 de cada operacao DDCE.
+# Spec: references/contract-spec.md
+
+contract:
+  version: "1.0.0"
+  id: "op{NN}-qa-001"
+  contractor: "tuninho-ddce"
+  contractor_version: "{DDCE_VERSION}"
+  contracted: "tuninho-qa"
+  contracted_version: null
+  operation: "{NN}_{NOME}"
+  created_at: "{TIMESTAMP}"
+  status: DRAFT
+
+acceptance:
+  accepted_at: null
+  accepted_by: null
+  accepted_version: null
+
+obligations:
+  # --- ESTATICAS (criadas na Etapa 7, sempre presentes) ---
+
+  - id: "OBL-ENV"
+    point: "Etapa 2"
+    gate: null
+    mode: "audit-ambiente"
+    args: ""
+    blocking: false
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-SIDECARS"
+    point: "Etapa 2"
+    gate: null
+    mode: "audit-sidecars"
+    args: "--projeto {NOME_PROJETO}"
+    blocking: false
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-DISCOVER"
+    point: "Etapa 5"
+    gate: "GATE_DISCOVER"
+    mode: "audit-discovery"
+    args: "--operacao {NN}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-ROTEIROS"
+    point: "Etapa 8"
+    gate: "GATE_DEFINE"
+    mode: "create-roteiros"
+    args: "--operacao {NN}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-DEFINE"
+    point: "Etapa 8"
+    gate: "GATE_DEFINE"
+    mode: "audit-define"
+    args: "--operacao {NN}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-GATE-FINAL"
+    point: "Etapa 15-16"
+    gate: "GATE_FINAL"
+    mode: "audit-gate-final"
+    args: "--operacao {NN}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  - id: "OBL-CONTRACT-COMPLIANCE"
+    point: "Etapa 15-16"
+    gate: "GATE_FINAL"
+    mode: "audit-contract-compliance"
+    args: "--operacao {NN}"
+    blocking: true
+    type: static
+    status: PENDING
+    delivery: null
+
+  # --- DINAMICAS (adicionadas via amendment apos GATE DEFINE, Etapa 8) ---
+  # OBL-FASE-{N}          para cada fase do plano
+  # OBL-PRE-T{N}.{M}      para cada tarefa (pre-check)
+  # OBL-POST-T{N}.{M}     para cada tarefa (post-check)
+  # OBL-DEPLOY-{N}        para fases com deploy (se aplicavel)
+  # OBL-HANDOFF-{N}       para handoffs entre sessoes (se multi-sessao)
+
+amendments: []
+
+summary:
+  total: 7
+  delivered: 0
+  pending: 7
+  skipped: 0
+  waived: 0
+  blocking_pending: 5
+  compliance_pct: "0%"
+  last_updated: "{TIMESTAMP}"

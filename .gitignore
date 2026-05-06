@@ -18,3 +18,12 @@ yarn.lock
 
 # Chart dependencies
 **/charts/*.tgz
+
+# a4tunados-ops-suite cache
+_a4tunados/.cache/
+
+# Tuninho hook/session state (local only)
+.claude/session-tracker.json
+.claude/settings.local.json
+.claude/tuninho-*-state.json
+.claude/tuninho-briefing-pending.json

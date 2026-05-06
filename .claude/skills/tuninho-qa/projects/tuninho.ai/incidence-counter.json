@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "project": "tuninho.ai",
+  "last_updated": "2026-04-21T19:00:00Z",
+  "incidences": [
+    {
+      "skill": "tuninho-ddce",
+      "procedure": "Etapa 8 (audit-define + create-roteiros — via DDCE em vez de tuninho-qa)",
+      "error_type": "skill-bypass",
+      "count": 1,
+      "first_seen": "2026-04-21T18:55:00Z",
+      "last_seen": "2026-04-21T18:56:30Z",
+      "severities_distribution": { "CRITICA": 0, "ALTA": 1, "MEDIA": 0, "BAIXA": 0 },
+      "operations": ["Op 03_go-live"],
+      "action_threshold": {
+        "count_minimo": 3,
+        "sugestao_quando_atingido": "Bumpar tuninho-ddce adicionando Regra Inviolavel: 'ANTES de registrar delivery no contract, invocar a skill competente via Skill tool' — evita o bypass se repetir"
+      },
+      "status": "WATCHING",
+      "notes": "DDCE rodou checks via bash + gerou roteiros/report/contract deliveries manualmente sem invocar Skill tool tuninho-qa. Justificativa oferecida: 'economia de tokens em sessao 44% context' — rejeitada (Regra #16: token economy nunca justifica bypass). Operador alertado via AskUserQuestion, escolheu invocacao formal. Auto-correcao executada na mesma etapa. Incidencia 1/3 para atingir threshold."
+    }
+  ]
+}
