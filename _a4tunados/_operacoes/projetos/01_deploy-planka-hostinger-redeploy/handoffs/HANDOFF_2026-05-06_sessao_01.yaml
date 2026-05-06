@@ -3,8 +3,8 @@
 # Atualizado em: 2026-05-06T15:55:00Z
 
 ddce:
-  fase_metodo: DISCOVER (concluida)
-  proxima_fase: DEFINE
+  fase_metodo: TODAS (DISCOVER + DEFINE + EXECUTION condensadas em sessão única)
+  proxima_fase: ENCERRAMENTO_FORMAL (Comlurb seal + escriba)
   etapa_atual: 5_concluida
   proxima_etapa: 6_define
   modo: DDCE_EXPANSIVO_MULTI_SESSOES
@@ -20,7 +20,7 @@ contexto:
     (crashado por PLANKA_LIST_ID ausente). Entregar acessos ao dev pra usar staging
     em ciclo de desenvolvimento. Mínimo impacto nos demais projetos do servidor B
     (a4tunados-mural, tuninho-ai).
-  status: discover_concluido_aguardando_sessao2
+  status: CONCLUIDA_FASE1_2_3_pendente_secrets_github
   branch_op: feat/deploy-planka-hostinger-redeploy
   branch_base: develop@89d798ad
   operador: victorgaudio
