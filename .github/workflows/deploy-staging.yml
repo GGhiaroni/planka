@@ -1,0 +1,53 @@
+name: Deploy Staging (hostinger-beta)
+
+on:
+  push:
+    branches: [deploy/staging]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync code to server (preserving .env)
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='_a4tunados' \
+            --exclude='.claude' \
+            --exclude='.mcp.json' \
+            --exclude='.vscode' \
+            --exclude='docker-compose.hostinger-beta.yml' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }}:/opt/hostinger-beta/planka/
+
+      - name: Run deploy script (build + restart + healthcheck + smoke)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }} \
+            "bash /opt/hostinger-beta/planka/scripts/deploy.sh"
+
+      - name: Final smoke test from runner
+        run: |
+          curl -fsSL -o /dev/null -w "Final smoke: HTTP %{http_code}\n" \
+            https://pdviewerp-stagging.fourtuna.com.br/
+
+      - name: Notify deploy success
+        if: success()
+        run: |
+          echo "✅ Deploy staging concluído"
+          echo "URL: https://pdviewerp-stagging.fourtuna.com.br/"
+          echo "Form: https://form-pdviewerp-stagging.fourtuna.com.br/"
