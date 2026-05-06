@@ -27,3 +27,10 @@ _a4tunados/.cache/
 .claude/settings.local.json
 .claude/tuninho-*-state.json
 .claude/tuninho-briefing-pending.json
+
+# Worktree symlinks (apontam pra workspace dev humano)
+/.mcp.json
+/_a4tunados/env
+
+# Playwright MCP test artifacts (cache local, nao versionar)
+.playwright-mcp/
