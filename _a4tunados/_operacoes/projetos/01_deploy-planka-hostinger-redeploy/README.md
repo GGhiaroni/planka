@@ -80,3 +80,11 @@ handoffs/
 - **PR install ops-suite**: GGhiaroni/planka#1 (mergeado)
 - **DEPLOY.md** do repo (instruções históricas — 222 linhas)
 - **Sidecars hostinger-beta**: `.claude/skills/tuninho-devops-hostinger/projects/hostinger-beta/`
+
+
+## SEAL FINAL
+
+- **Status**: SEALED 2026-05-06T17:35:00Z
+- **Comlurb**: Modo 6 manual (ver `SEAL_FINAL.yaml`)
+- **Vault Escriba**: criado em `_a4tunados/docs_planka/`
+- **Operação imutável** a partir deste ponto.

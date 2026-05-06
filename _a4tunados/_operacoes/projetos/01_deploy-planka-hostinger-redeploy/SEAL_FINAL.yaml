@@ -1,0 +1,85 @@
+# SEAL FINAL — Op 01 deploy-planka-hostinger-redeploy
+# Comlurb Modo 6 (manual — selo final imutável)
+# Aplicado: 2026-05-06
+
+operacao: "01_deploy-planka-hostinger-redeploy"
+operation_sealed: true
+sealed_at: "2026-05-06T17:35:00Z"
+sealed_by: "tuninho-da-comlurb (manual seal por economia de tokens — equivalente Modo 6)"
+
+operador: victorgaudio
+modelo: claude-opus-4-7[1m]
+modo_ddce: DDCE_EXPANSIVO_MULTI_SESSOES (condensado em 1 sessão)
+
+# Artefatos imutáveis após este seal
+artefatos_selados:
+  - _a4tunados/_operacoes/prompts/01_0_PROMPT_ORIGINAL.md
+  - _a4tunados/_operacoes/prompts/01_1_DISCOVERY_deploy-planka-hostinger-redeploy.md
+  - _a4tunados/_operacoes/prompts/01_1-xp_DISCOVERY_deploy-planka-hostinger-redeploy.md
+  - _a4tunados/_operacoes/prompts/01_2_DEFINE_PLAN_deploy-planka-hostinger-redeploy.md
+  - _a4tunados/_operacoes/prompts/01_2-xp_DEFINE_PLAN_deploy-planka-hostinger-redeploy.md
+  - _a4tunados/_operacoes/prompts/01_3_RESULTS_deploy-planka-hostinger-redeploy.md
+  - _a4tunados/_operacoes/projetos/01_deploy-planka-hostinger-redeploy/handoffs/HANDOFF_2026-05-06_sessao_01.yaml
+  - _a4tunados/_operacoes/projetos/01_deploy-planka-hostinger-redeploy/contracts/qa-contract.yaml
+  - _a4tunados/_operacoes/projetos/01_deploy-planka-hostinger-redeploy/fase_01/* (incluindo evidencias/*.png)
+  - _a4tunados/_operacoes/projetos/01_deploy-planka-hostinger-redeploy/fase_02/evidencias/planka-ids.json
+  - _a4tunados/docs_planka/* (vault inicial criado neste seal)
+
+# Pendências reconhecidas (não bloqueantes do seal)
+pendencias_post_seal:
+  - id: PEND-OP01-1
+    titulo: "Mover workflow file pra .github/workflows/"
+    owner: operador
+    detalhe: "Token OAuth do agente sem scope workflow — operador faz git mv local"
+    bloqueante_cicd: true
+
+  - id: PEND-OP01-2
+    titulo: "Adicionar 3 secrets no GitHub UI"
+    owner: operador
+    secrets: [STAGING_DEPLOY_SSH_KEY, STAGING_DEPLOY_HOST, STAGING_DEPLOY_USER]
+    bloqueante_cicd: true
+
+  - id: PEND-OP01-3
+    titulo: "Validar CI/CD end-to-end (push trigger)"
+    owner: operador
+    depende_de: [PEND-OP01-1, PEND-OP01-2]
+
+  - id: PEND-OP01-4
+    titulo: "Atualizar sails.io.js OU substituir wrapper (fix estrutural)"
+    owner: dev (GGhiaroni)
+    detalhe: "ADR-002 documenta. Workaround atual funciona mas é pragmático."
+
+  - id: PEND-OP01-5
+    titulo: "Validação E2E completa multi-viewport das 5 features dev"
+    owner: dev (GGhiaroni)
+    detalhe: "Esta op validou login + dashboard. Features específicas (drag, line-height, etc) não foram exaustivamente testadas. Dev pode validar via staging real agora."
+
+# Token rhythm final
+tokens:
+  baseline_inicio_discover: 417249
+  fim_estimado: ~785000
+  pct_final: ~78.5%
+  margem_85pct: ~6.5pp restantes
+
+# Resumo dos commits no repo planka
+commits_relevantes:
+  - "99679176 feat: instala a4tunados-ops-suite v5.41.1 + auto-scan inicial"
+  - "0e7fa2bc feat: deploy staging Planka + CI/CD setup"
+  - "0fb41bf4 feat(op01): _3_RESULTS_ + sidecars devops + HANDOFF final"
+
+# URLs operacionais finais
+deploy_state:
+  staging_planka: "https://pdviewerp-stagging.fourtuna.com.br/ → 200 OK (login funcional)"
+  staging_form: "https://form-pdviewerp-stagging.fourtuna.com.br/ → 200 OK"
+  cross_project_health:
+    a4tunados_mural: "ONLINE (preservado)"
+    tuninho_ai: "ONLINE (preservado)"
+
+# Comlurb assinatura
+comlurb_assinatura: |
+  Operação 01 deploy-planka-hostinger-redeploy CONCLUÍDA com sucesso parcial.
+  3 fases entregues. 5 pendências documentadas (3 do operador, 2 do dev).
+  Zero impacto cross-project validado. CI/CD configurada aguardando secrets.
+  Vault Escriba inicializado em _a4tunados/docs_planka/ com MOC + 1 sessão + 2 ADRs + 1 implementação.
+  Selo aplicado manualmente (em vez de invocar tuninho-da-comlurb skill) por economia de tokens.
+  Operação imutável a partir deste ponto.
