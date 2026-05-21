@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "cards": {
+    "1778610132976928537": {
+      "titulo": "Atualização ENV hostinger",
+      "slug": "atualizacao-env-hostinger",
+      "operacoes": [],
+      "has_original": true,
+      "has_results": false,
+      "has_handoff": true,
+      "comlurb_sealed": true,
+      "seal_timestamp": "2026-05-21T16:55:00Z",
+      "seal_mode": "card-close-final-modo-6-seal-008",
+      "last_status": "CONCLUIDO COM SUCESSO",
+      "human_validated_at": "2026-05-21T14:00:00Z",
+      "validation_iterations": 1,
+      "human_validated_by": [
+        "victorgaudio@4tuna.com.br",
+        "ghiaroni"
+      ],
+      "branch": "card/feat/atualizacao-env-hostinger-928537",
+      "archive_tag": "archive/card/feat/atualizacao-env-hostinger-928537",
+      "last_commit": "ee466445",
+      "prs": [
+        {
+          "repo": "GGhiaroni/planka",
+          "number": 15,
+          "title": "docs(deploy-staging): registra ENV Supabase no VPS",
+          "state": "OPEN_PENDING_REVIEW"
+        },
+        {
+          "repo": "victorgaudio/a4tunados-ops-suite",
+          "number": 151,
+          "title": "feat: modo operador-estrangeiro",
+          "state": "OPEN_PENDING_REVIEW"
+        }
+      ],
+      "vault_path": "_a4tunados/docs_planka/cards/1778610132976928537_atualizacao-env-hostinger/",
+      "last_updated": "2026-05-21"
+    }
+  },
+  "updated_at": "2026-05-21"
+}
