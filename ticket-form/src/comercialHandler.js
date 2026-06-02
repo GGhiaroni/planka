@@ -4,6 +4,7 @@ const {
   createCardInList,
   createCardCustomFieldGroups,
   getComercialListId,
+  uploadAttachmentsFromMulter,
 } = require('./planka');
 const supabase = require('./supabase');
 
@@ -127,6 +128,9 @@ async function comercialHandler(req, res) {
     const { item: card } = await createCardInList(comercialListId, cardName, '');
     await createCardCustomFieldGroups(card.id, customFieldGroups);
 
+    // Upload any optional image attachments (best-effort, never blocks).
+    const uploadedCount = await uploadAttachmentsFromMulter(card.id, req.files);
+
     // Mirror to Supabase (best-effort).
     Promise.all([
       supabase.logFormSubmission({
@@ -161,6 +165,7 @@ async function comercialHandler(req, res) {
           tipo: flow.label,
           vendedor: data.VENDEDOR,
           opened_at: openedAt,
+          attachments: uploadedCount,
         },
       }),
     ]).catch(() => undefined);

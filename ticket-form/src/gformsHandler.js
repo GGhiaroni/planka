@@ -1,6 +1,6 @@
 'use strict';
 
-const { createCard, createCardCustomFieldGroups } = require('./planka');
+const { createCard, createCardCustomFieldGroups, uploadAttachmentsFromMulter } = require('./planka');
 const supabase = require('./supabase');
 const { WEBHOOK_SECRET } = require('./config');
 
@@ -177,6 +177,9 @@ async function gformsHandler(req, res) {
     const groups = buildCustomFieldGroups(data, timestamp);
     await createCardCustomFieldGroups(card.id, groups);
 
+    // Upload any optional image attachments (best-effort, never blocks).
+    const uploadedCount = await uploadAttachmentsFromMulter(card.id, req.files);
+
     // Mirror to Supabase (best-effort — never blocks the form response).
     Promise.all([
       supabase.logFormSubmission({
@@ -206,7 +209,7 @@ async function gformsHandler(req, res) {
       supabase.logCardEvent({
         plankaCardId: card.id,
         eventType: 'form_submit_design',
-        data: { source: 'ticket-form', opened_at: timestamp },
+        data: { source: 'ticket-form', opened_at: timestamp, attachments: uploadedCount },
       }),
     ]).catch(() => undefined);
 

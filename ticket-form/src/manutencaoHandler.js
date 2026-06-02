@@ -6,6 +6,7 @@ const {
   attachLabel,
   getChamadosListId,
   getPriorityLabelId,
+  uploadAttachmentsFromMulter,
 } = require('./planka');
 const supabase = require('./supabase');
 
@@ -108,6 +109,9 @@ async function manutencaoHandler(req, res) {
     await attachLabel(card.id, labelId);
     await createCardCustomFieldGroups(card.id, [customFieldGroup]);
 
+    // Upload any optional image attachments (best-effort, never blocks).
+    const uploadedCount = await uploadAttachmentsFromMulter(card.id, req.files);
+
     // Mirror to Supabase (best-effort).
     Promise.all([
       supabase.logFormSubmission({
@@ -142,6 +146,7 @@ async function manutencaoHandler(req, res) {
           os_number: os,
           opened_at: openedAt,
           prioridade: data.prioridade,
+          attachments: uploadedCount,
         },
       }),
     ]).catch(() => undefined);
