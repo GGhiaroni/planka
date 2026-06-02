@@ -224,6 +224,60 @@ async function createCard(name, descricao) {
   return createCardInList(listId, name, descricao);
 }
 
+// Uploads a single file as a card attachment via Planka's
+// POST /api/cards/{id}/attachments endpoint (multipart/form-data).
+// Returns the attachment item on success, or null on failure (logged).
+// Best-effort batch upload. Receives multer files (req.files) and forwards
+// each to Planka's attachment API. Never throws — a failed image must not
+// break the form submit, so we just log and return the count of successes.
+async function uploadAttachmentsFromMulter(cardId, files) {
+  if (!cardId || !Array.isArray(files) || files.length === 0) return 0;
+  let success = 0;
+  for (const file of files) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const item = await uploadAttachment(
+        cardId,
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+      );
+      if (item) success += 1;
+    } catch (err) {
+      console.error(`[ticket-form] attachment upload threw for "${file.originalname}":`, err.message);
+    }
+  }
+  return success;
+}
+
+async function uploadAttachment(cardId, fileBuffer, filename, mimetype) {
+  const token = await getToken();
+
+  const fd = new FormData();
+  fd.append('type', 'file');
+  fd.append('name', filename);
+  fd.append('file', new Blob([fileBuffer], { type: mimetype || 'application/octet-stream' }), filename);
+
+  const res = await fetch(`${PLANKA_URL}/api/cards/${cardId}/attachments`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+
+  if (res.status === 401) {
+    tokenCache = { token: null, expiresAt: 0 };
+    return uploadAttachment(cardId, fileBuffer, filename, mimetype);
+  }
+
+  if (!res.ok) {
+    console.error(`[ticket-form] attachment upload failed (${res.status}) for "${filename}"`);
+    return null;
+  }
+
+  const json = await res.json();
+  return json.item || null;
+}
+
 async function attachLabel(cardId, labelId) {
   const token = await getToken();
   const res = await fetch(`${PLANKA_URL}/api/cards/${cardId}/card-labels`, {
@@ -370,6 +424,8 @@ module.exports = {
   createCardInList,
   createCardCustomFieldGroups,
   attachLabel,
+  uploadAttachment,
+  uploadAttachmentsFromMulter,
   fetchBoardCards,
   getDesignListId,
   getChamadosListId,

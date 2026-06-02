@@ -182,6 +182,31 @@
       display: block;
     }
 
+    /* Attachments uploader */
+    .anexos-uploader { display: flex; flex-direction: column; gap: 12px; }
+    .upload-zone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 10px;
+      background: #f8fafc; cursor: pointer; transition: border-color .15s, background .15s;
+      text-align: center;
+    }
+    .upload-zone:hover { border-color: #16a34a; background: #ecfdf5; }
+    .upload-icon { font-size: 1.5rem; }
+    .upload-text { font-size: 0.88rem; color: #555; }
+    .anexos-list { display: flex; flex-direction: column; gap: 6px; }
+    .anexos-list:empty { display: none; }
+    .anexos-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: #f1f5f9; border-radius: 6px; font-size: 0.85rem;
+    }
+    .anexos-item-info { display: flex; gap: 8px; align-items: center; overflow: hidden; min-width: 0; }
+    .anexos-item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .anexos-item-size { color: #888; font-size: 0.78rem; flex-shrink: 0; }
+    .anexos-item-remove {
+      background: transparent; border: none; cursor: pointer; color: #b91c1c;
+      font-size: 1.2rem; padding: 0 6px; line-height: 1;
+    }
+
     /* Submit area */
     .submit-section {
       max-width: 680px;
@@ -526,6 +551,19 @@
       </div>
     </div>
 
+    <!-- Anexos (opcional) -->
+    <div class="section fluxo" id="fluxo-anexos">
+      <div class="section-title">Anexos (opcional)</div>
+      <div class="anexos-uploader">
+        <label class="upload-zone" for="anexos-input">
+          <input type="file" id="anexos-input" name="anexos" multiple accept="image/*" hidden />
+          <span class="upload-icon">📎</span>
+          <span class="upload-text">Clique para adicionar imagens (até 10, máx. 10MB cada)</span>
+        </label>
+        <div class="anexos-list" id="anexos-list"></div>
+      </div>
+    </div>
+
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="submit" id="submitBtn" disabled>Selecione o tipo</button>
@@ -545,6 +583,7 @@
       igreja: document.getElementById('fluxo-igreja'),
     };
     const fluxoCommon = document.getElementById('fluxo-common');
+    const fluxoAnexos = document.getElementById('fluxo-anexos');
 
     function selectType(type) {
       // marca o card escolhido
@@ -554,13 +593,53 @@
 
       // mostra campos comuns + o fluxo escolhido, esconde os outros
       fluxoCommon.classList.add('is-visible');
+      fluxoAnexos.classList.add('is-visible');
       Object.entries(fluxos).forEach(([key, el]) => {
         el.classList.toggle('is-visible', key === type);
       });
 
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Enviar atualização';
+      submitBtn.textContent = 'Enviar pedido';
     }
+
+    // Anexos: render selected files + allow removal via DataTransfer.
+    const anexosInput = document.getElementById('anexos-input');
+    const anexosList = document.getElementById('anexos-list');
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function renderAnexos() {
+      anexosList.innerHTML = '';
+      Array.from(anexosInput.files).forEach((file, idx) => {
+        const item = document.createElement('div');
+        item.className = 'anexos-item';
+        const info = document.createElement('div');
+        info.className = 'anexos-item-info';
+        info.innerHTML = '<span>📎</span><span class="anexos-item-name"></span><span class="anexos-item-size"></span>';
+        info.querySelector('.anexos-item-name').textContent = file.name;
+        info.querySelector('.anexos-item-size').textContent = formatSize(file.size);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'anexos-item-remove';
+        btn.setAttribute('aria-label', 'Remover');
+        btn.textContent = '×';
+        btn.addEventListener('click', () => removeAnexo(idx));
+        item.appendChild(info);
+        item.appendChild(btn);
+        anexosList.appendChild(item);
+      });
+    }
+    function removeAnexo(index) {
+      const dt = new DataTransfer();
+      Array.from(anexosInput.files).forEach((f, i) => {
+        if (i !== index) dt.items.add(f);
+      });
+      anexosInput.files = dt.files;
+      renderAnexos();
+    }
+    anexosInput.addEventListener('change', renderAnexos);
 
     typeCards.forEach((card) => {
       card.addEventListener('click', () => {
@@ -597,11 +676,19 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span class="btn-loading"><span class="spinner"></span> Enviando...</span>';
 
+      // FormData carrega tanto os campos do fluxo escolhido quanto os anexos.
+      const fd = new FormData();
+      for (const [k, v] of Object.entries(filtered)) {
+        fd.append(k, v);
+      }
+      for (const file of anexosInput.files) {
+        fd.append('anexos', file);
+      }
+
       try {
         const res = await fetch('/api/comercial', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(filtered),
+          body: fd, // browser sets multipart/form-data com boundary
         });
         const body = await res.json();
         if (res.ok && body.ok) {
