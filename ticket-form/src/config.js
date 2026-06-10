@@ -20,14 +20,15 @@ const PLANKA_LIST_ID = process.env.PLANKA_LIST_ID || null;
 const PLANKA_CHAMADOS_LIST_ID = process.env.PLANKA_CHAMADOS_LIST_ID || null;
 
 // Names used to discover IDs when not provided explicitly. Defaults match the
-// 02_default_boards seed (reestruturado em 06/2026 — colunas renomeadas).
+// 02_default_boards seed (boards renomeados em 06/2026: Design→Artes,
+// Chamados Técnicos→Operacional, Comercial→Pedido de Venda).
 const PLANKA_PROJECT_NAME = process.env.PLANKA_PROJECT_NAME || 'PDView ERP';
-const PLANKA_DESIGN_BOARD_NAME = process.env.PLANKA_DESIGN_BOARD_NAME || 'Design';
+const PLANKA_DESIGN_BOARD_NAME = process.env.PLANKA_DESIGN_BOARD_NAME || 'Artes';
 const PLANKA_DESIGN_LIST_NAME = process.env.PLANKA_DESIGN_LIST_NAME || 'PEDIDO DE ARTE';
-const PLANKA_CHAMADOS_BOARD_NAME =
-  process.env.PLANKA_CHAMADOS_BOARD_NAME || 'Chamados Técnicos';
+const PLANKA_CHAMADOS_BOARD_NAME = process.env.PLANKA_CHAMADOS_BOARD_NAME || 'Operacional';
 const PLANKA_CHAMADOS_LIST_NAME = process.env.PLANKA_CHAMADOS_LIST_NAME || 'CHAMADOS';
-const PLANKA_COMERCIAL_BOARD_NAME = process.env.PLANKA_COMERCIAL_BOARD_NAME || 'Comercial';
+const PLANKA_COMERCIAL_BOARD_NAME =
+  process.env.PLANKA_COMERCIAL_BOARD_NAME || 'Pedido de Venda';
 const PLANKA_COMERCIAL_LIST_NAME = process.env.PLANKA_COMERCIAL_LIST_NAME || 'PEDIDO DE VENDA';
 const PLANKA_ATENDIMENTO_BOARD_NAME =
   process.env.PLANKA_ATENDIMENTO_BOARD_NAME || 'Atendimento';

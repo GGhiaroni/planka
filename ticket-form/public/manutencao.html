@@ -355,6 +355,41 @@
     }
 
     .btn-new:hover { background: #b71c1c; }
+
+    /* Typeahead (autocomplete de cliente) */
+    .typeahead { position: relative; }
+    .typeahead-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #d32f2f;
+      border-radius: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 10;
+      display: none;
+    }
+    .typeahead-list.is-open { display: block; }
+    .typeahead-item {
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .typeahead-item:last-child { border-bottom: none; }
+    .typeahead-item:hover,
+    .typeahead-item.is-active { background: #fef2f2; }
+    .typeahead-item-name { font-weight: 600; color: #1a1a2e; }
+    .typeahead-item-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .typeahead-empty {
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: #888;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -371,9 +406,10 @@
     <div class="section">
       <div class="section-title">Cliente e Contato</div>
       <div class="grid-2">
-        <div class="field full">
+        <div class="field full typeahead" id="cliente-typeahead">
           <label>Cliente <span class="req">*</span></label>
-          <input type="text" name="cliente" placeholder="Ex: Posto Mineirão" required />
+          <input type="text" name="cliente" id="cliente-input" placeholder="Ex: Posto Mineirão (comece a digitar para preencher dados salvos)" autocomplete="off" required />
+          <div class="typeahead-list" id="cliente-list" role="listbox"></div>
         </div>
         <div class="field">
           <label>Nome do Contato <span class="req">*</span></label>
@@ -512,6 +548,121 @@
 
     // Pré-preenche a data do chamado com hoje
     document.getElementById('dataChamado').value = new Date().toISOString().split('T')[0];
+
+    // Autocomplete de cliente: ao digitar, busca clientes cadastrados via
+    // form de Pedido de Venda e preenche os outros campos quando o usuário
+    // escolhe uma sugestão. Tudo continua editável depois.
+    setupClienteTypeahead({
+      inputId: 'cliente-input',
+      listId: 'cliente-list',
+      onSelect: (c) => {
+        // Nome do contato e telefone vêm do "responsavel/telefone" salvo.
+        if (c.responsavel) document.querySelector('[name="nomeContato"]').value = c.responsavel;
+        if (c.telefone) document.querySelector('[name="telefoneContato"]').value = c.telefone;
+        // Endereço fica como cidade/UF (não temos endereço completo no cadastro).
+        const enderecoEl = document.querySelector('[name="enderecoServico"]');
+        if (enderecoEl && !enderecoEl.value && (c.cidade || c.estado)) {
+          enderecoEl.value = [c.cidade, c.estado].filter(Boolean).join(' / ');
+        }
+      },
+    });
+
+    function setupClienteTypeahead({ inputId, listId, onSelect }) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      let debounceTimer = null;
+      let activeIndex = -1;
+      let items = [];
+
+      function close() {
+        list.classList.remove('is-open');
+        activeIndex = -1;
+      }
+      function render(results) {
+        items = results;
+        list.innerHTML = '';
+        if (results.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'typeahead-empty';
+          empty.textContent = 'Nenhum cliente encontrado.';
+          list.appendChild(empty);
+          list.classList.add('is-open');
+          return;
+        }
+        results.forEach((c, idx) => {
+          const item = document.createElement('div');
+          item.className = 'typeahead-item';
+          item.setAttribute('role', 'option');
+          const meta = [c.tipo, [c.cidade, c.estado].filter(Boolean).join('/')]
+            .filter(Boolean)
+            .join(' · ');
+          const nameEl = document.createElement('div');
+          nameEl.className = 'typeahead-item-name';
+          nameEl.textContent = c.name;
+          item.appendChild(nameEl);
+          if (meta) {
+            const metaEl = document.createElement('div');
+            metaEl.className = 'typeahead-item-meta';
+            metaEl.textContent = meta;
+            item.appendChild(metaEl);
+          }
+          item.addEventListener('mousedown', (e) => {
+            // mousedown (não click) porque blur do input dispara antes do click.
+            e.preventDefault();
+            select(idx);
+          });
+          list.appendChild(item);
+        });
+        list.classList.add('is-open');
+      }
+      function select(idx) {
+        const c = items[idx];
+        if (!c) return;
+        input.value = c.name;
+        onSelect(c);
+        close();
+      }
+      function highlight(idx) {
+        const els = list.querySelectorAll('.typeahead-item');
+        els.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+      }
+      async function fetchAndRender() {
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        try {
+          const res = await fetch('/api/clientes/search?q=' + encodeURIComponent(q));
+          const body = await res.json();
+          render(body.items || []);
+        } catch {
+          close();
+        }
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchAndRender, 200);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (!list.classList.contains('is-open')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          highlight(activeIndex);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          highlight(activeIndex);
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+          e.preventDefault();
+          select(activeIndex);
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      input.addEventListener('blur', () => {
+        // Pequeno delay pra deixar o mousedown rodar primeiro.
+        setTimeout(close, 120);
+      });
+    }
 
     // Anexos: render selected files + allow removal via DataTransfer.
     const anexosInput = document.getElementById('anexos-input');

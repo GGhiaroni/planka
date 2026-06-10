@@ -1,22 +1,24 @@
 /*!
  * Seeds the default Planka workspace expected by the ticket-form service.
  *
- * Boards seeded under "PDView ERP" project:
- *   - Design        — kanban — lists: PEDIDO DE ARTE, EXECUTADO (closed)
- *   - Chamados Técnicos (a.k.a. "Operacional")
- *                   — table  — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
- *                            — labels: ASSISTÊNCIA TÉCNICA, INSTALAÇÃO
- *                                      (+ 8 legacy priority labels kept)
- *   - Comercial     — table  — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
+ * Boards seeded under "PDView ERP" project (nomes finais — 06/2026):
+ *   - Artes          — kanban — lists: PEDIDO DE ARTE, EXECUTADO (closed)
+ *   - Operacional    — table  — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
+ *                             — labels: ASSISTÊNCIA TÉCNICA, INSTALAÇÃO
+ *                                       (+ 8 legacy priority labels kept)
+ *   - Pedido de Venda — table — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
  *                                     OS CHAMADO (intake/triage board)
- *   - Atendimento   — kanban — lists: AGENDAR TREINAMENTO,
- *                                     TREINAMENTO EXECUTADO, CHAMADOS,
- *                                     EM ANDAMENTO, CONCLUÍDO (closed)
- *                            — labels: same 2 as Operacional (mirrored)
+ *   - Atendimento    — kanban — lists: AGENDAR TREINAMENTO,
+ *                                      TREINAMENTO EXECUTADO, CHAMADOS,
+ *                                      EM ANDAMENTO, CONCLUÍDO (closed)
+ *                             — labels: same 2 as Operacional (mirrored)
  *
- * The seed is idempotent: existing rows keep their IDs, names are migrated
- * in-place via renameLegacyLists (so existing cards stay linked), and
- * 06/2026 column renames are applied on every run.
+ * Boards antigos (Design / Chamados Técnicos / Comercial) são renomeados
+ * in-place via renameLegacyBoards — cards e IDs ficam preservados. Listas
+ * e labels também migram in-place. Projetos vazios criados por instalações
+ * anteriores são removidos do projeto canônico "PDView ERP".
+ *
+ * O seed é idempotente: roda sempre que o container reinicia.
  */
 
 const PROJECT_NAME = 'PDView ERP';
@@ -73,20 +75,31 @@ const TIPO_CHAMADO_LABELS = [
   { name: 'INSTALAÇÃO', color: 'turquoise-sea' },
 ];
 
+// Boards renomeados in-place. ensureBoard procura pelo NOME NOVO; se não
+// achar e o antigo existir, renomeia o registro existente — cards/listas
+// preservados. Idempotente: depois do primeiro run, só o nome novo existe.
+const BOARD_RENAMES = {
+  Design: 'Artes',
+  'Chamados Técnicos': 'Operacional',
+  Comercial: 'Pedido de Venda',
+};
+
 // Renames idempotentes: mapeia nome antigo → { name, type } novo. A função
 // renameLegacyLists procura cada nome antigo e renomeia in-place, então
 // cards existentes continuam linkados sem precisar de migração.
 const LIST_RENAMES = {
-  Design: {
+  // Keys são os nomes NOVOS dos boards (depois do BOARD_RENAMES). Essa
+  // migração é noop em instalações já feitas (as listas já têm nome novo).
+  Artes: {
     Demanda: { name: 'PEDIDO DE ARTE', type: 'active' },
     Finalizado: { name: 'EXECUTADO', type: 'closed' },
   },
-  'Chamados Técnicos': {
+  Operacional: {
     'Em Espera': { name: 'CHAMADOS', type: 'active' },
     'Em Execução': { name: 'ROTA', type: 'active' },
     Executados: { name: 'CONCLUÍDO', type: 'closed' },
   },
-  Comercial: {
+  'Pedido de Venda': {
     'Em Espera': { name: 'PEDIDO DE VENDA', type: 'active' },
     'Em Execução': { name: 'PEDIDO DE ARTE', type: 'active' },
     Executados: { name: 'OS CHAMADO', type: 'active' },
@@ -127,6 +140,56 @@ async function ensureProject(knex, adminUserId) {
   }
 
   return projectId;
+}
+
+// Renomeia in-place todos os boards listados em BOARD_RENAMES. Cards,
+// listas e labels mantêm seus IDs — só o nome do board muda. Roda antes
+// de qualquer ensureBoard pra garantir que as chamadas seguintes encontrem
+// o registro pelo nome novo.
+async function renameLegacyBoards(knex) {
+  const entries = Object.entries(BOARD_RENAMES);
+  for (let i = 0; i < entries.length; i += 1) {
+    const [oldName, newName] = entries[i];
+    // eslint-disable-next-line no-await-in-loop
+    const existing = await knex('board').where({ name: oldName }).first();
+    if (existing) {
+      // eslint-disable-next-line no-await-in-loop
+      const collision = await knex('board').where({ name: newName }).first();
+      // Se já existir um board com o nome novo (instalação que rodou o seed
+      // depois do rename ter sido aplicado manualmente), não sobrescreve —
+      // o board antigo vira o canônico e o duplicado fica intocado pra que
+      // o time decida o que fazer.
+      if (!collision) {
+        // eslint-disable-next-line no-await-in-loop
+        await knex('board').where({ id: existing.id }).update({ name: newName });
+      }
+    }
+  }
+}
+
+// Remove projetos vazios (sem boards) cujo nome bate com algum nome antigo
+// de board — sobra do tempo em que cada board ficava no seu próprio projeto
+// auto-criado. Limpa o seletor de projetos no Planka.
+async function cleanupOrphanProjects(knex) {
+  const oldNames = Object.keys(BOARD_RENAMES);
+  for (let i = 0; i < oldNames.length; i += 1) {
+    const name = oldNames[i];
+    // eslint-disable-next-line no-await-in-loop
+    const project = await knex('project').where({ name }).first();
+    if (project) {
+      // eslint-disable-next-line no-await-in-loop
+      const boardCount = await knex('board')
+        .where({ project_id: project.id })
+        .count('id as n')
+        .first();
+      if (Number(boardCount.n) === 0) {
+        // eslint-disable-next-line no-await-in-loop
+        await knex('project_manager').where({ project_id: project.id }).delete();
+        // eslint-disable-next-line no-await-in-loop
+        await knex('project').where({ id: project.id }).delete();
+      }
+    }
+  }
 }
 
 // Reuses an existing board with the given name (in ANY project) before
@@ -305,29 +368,33 @@ exports.seed = async (knex) => {
 
   const fallbackProjectId = await ensureProject(knex, admin.id);
 
-  // --- Design board ---
+  // Renomeia primeiro pra que as chamadas ensureBoard seguintes encontrem
+  // os boards pelo nome novo (Artes, Operacional, Pedido de Venda).
+  await renameLegacyBoards(knex);
+
+  // --- Artes board (ex-Design) ---
   const { boardId: designBoardId, projectId: designProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
-    'Design',
+    'Artes',
     'kanban',
     POSITION_GAP,
   );
   await ensureBoardMembership(knex, designProjectId, designBoardId, admin.id);
-  await renameLegacyLists(knex, designBoardId, 'Design');
+  await renameLegacyLists(knex, designBoardId, 'Artes');
   await migrateLegacyDesignLists(knex, designBoardId);
   await seedListsOnBoard(knex, designBoardId, DESIGN_LISTS);
 
-  // --- Chamados Técnicos board (a.k.a. Operacional) ---
+  // --- Operacional board (ex-Chamados Técnicos) ---
   const { boardId: chamadosBoardId, projectId: chamadosProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
-    'Chamados Técnicos',
+    'Operacional',
     'table',
     POSITION_GAP * 2,
   );
   await ensureBoardMembership(knex, chamadosProjectId, chamadosBoardId, admin.id);
-  await renameLegacyLists(knex, chamadosBoardId, 'Chamados Técnicos');
+  await renameLegacyLists(knex, chamadosBoardId, 'Operacional');
   await seedListsOnBoard(knex, chamadosBoardId, CHAMADOS_LISTS);
 
   // Migra duplicatas legacy de "Finalizado/Finalizados" → CONCLUÍDO. Roda
@@ -375,16 +442,16 @@ exports.seed = async (knex) => {
     POSITION_GAP * (PRIORITY_LABELS.length + 1),
   );
 
-  // --- Comercial board ---
+  // --- Pedido de Venda board (ex-Comercial) ---
   const { boardId: comercialBoardId, projectId: comercialProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
-    'Comercial',
+    'Pedido de Venda',
     'table',
     POSITION_GAP * 3,
   );
   await ensureBoardMembership(knex, comercialProjectId, comercialBoardId, admin.id);
-  await renameLegacyLists(knex, comercialBoardId, 'Comercial');
+  await renameLegacyLists(knex, comercialBoardId, 'Pedido de Venda');
   await seedListsOnBoard(knex, comercialBoardId, COMERCIAL_LISTS);
 
   // --- Atendimento board (06/2026) ---
@@ -400,4 +467,8 @@ exports.seed = async (knex) => {
   // Mesmos labels do board Operacional — o card espelhado precisa carregar
   // o mesmo rótulo (a integração de espelhamento entra em PR seguinte).
   await seedLabelsOnBoard(knex, atendimentoBoardId, TIPO_CHAMADO_LABELS);
+
+  // Limpa projetos órfãos (vazios, com nome igual ao board antigo). São
+  // resquícios de instalações anteriores que tinham 1 projeto por board.
+  await cleanupOrphanProjects(knex);
 };
