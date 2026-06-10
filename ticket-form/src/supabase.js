@@ -99,6 +99,104 @@ async function upsertCard(card) {
   }
 }
 
+/**
+ * Upsert a client record (used pelo form de Pedido de Venda). O match é por
+ * nome normalizado (lower + trim). Campos que vierem null/undefined no
+ * patch são ignorados pra não apagar dados já cadastrados.
+ *
+ * Retorna o id do registro upserted, ou null se desabilitado/erro.
+ */
+async function upsertClient(patch) {
+  if (!client) return null;
+  if (!patch || !patch.name || !String(patch.name).trim()) return null;
+  try {
+    const name = String(patch.name).trim();
+    const nameNormalized = name.toLowerCase();
+
+    // Procura um cliente existente pelo nome normalizado pra fazer merge
+    // dos campos (preserva o que veio antes se a submissão atual deixou em
+    // branco). name_normalized é coluna gerada — não vai no select por
+    // necessidade, mas serve de chave única no índice.
+    const { data: existing } = await client
+      .from('clients')
+      .select('*')
+      .eq('name_normalized', nameNormalized)
+      .maybeSingle();
+
+    // Monta payload final: novo onde vier, herda do existente onde não.
+    const merged = {
+      name,
+      cnpj: patch.cnpj ?? existing?.cnpj ?? null,
+      tipo: patch.tipo ?? existing?.tipo ?? null,
+      bandeira: patch.bandeira ?? existing?.bandeira ?? null,
+      segmento: patch.segmento ?? existing?.segmento ?? null,
+      denominacao: patch.denominacao ?? existing?.denominacao ?? null,
+      cidade: patch.cidade ?? existing?.cidade ?? null,
+      estado: patch.estado ?? existing?.estado ?? null,
+      responsavel: patch.responsavel ?? existing?.responsavel ?? null,
+      telefone: patch.telefone ?? existing?.telefone ?? null,
+      status: patch.status ?? existing?.status ?? null,
+      observacoes: patch.observacoes ?? existing?.observacoes ?? null,
+      ultimo_vendedor: patch.ultimo_vendedor ?? existing?.ultimo_vendedor ?? null,
+      last_submission_id: patch.last_submission_id ?? existing?.last_submission_id ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existing) {
+      const { error } = await client.from('clients').update(merged).eq('id', existing.id);
+      if (error) {
+        console.error(`[ticket-form] supabase clients update failed: ${error.message}`);
+        return null;
+      }
+      return existing.id;
+    }
+
+    const { data: inserted, error } = await client
+      .from('clients')
+      .insert(merged)
+      .select('id')
+      .single();
+    if (error) {
+      console.error(`[ticket-form] supabase clients insert failed: ${error.message}`);
+      return null;
+    }
+    return inserted && inserted.id;
+  } catch (err) {
+    console.error(`[ticket-form] supabase clients upsert threw: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Busca clientes cujo nome (normalizado) contenha o termo `q`. Usado pelo
+ * typeahead nos formulários de Pedido de Arte e Chamado Técnico.
+ *
+ * Retorna até `limit` registros mais recentes; lista vazia se desabilitado.
+ */
+async function searchClients(q, limit = 10) {
+  if (!client) return [];
+  const term = String(q || '').trim().toLowerCase();
+  if (term.length < 2) return [];
+  try {
+    const { data, error } = await client
+      .from('clients')
+      .select(
+        'id,name,cnpj,tipo,bandeira,segmento,denominacao,cidade,estado,responsavel,telefone,updated_at',
+      )
+      .ilike('name_normalized', `%${term}%`)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error(`[ticket-form] supabase clients search failed: ${error.message}`);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error(`[ticket-form] supabase clients search threw: ${err.message}`);
+    return [];
+  }
+}
+
 /** Append an event to the card_events timeline. Best-effort, never throws. */
 async function logCardEvent({ plankaCardId, eventType, data = {}, userEmail = null }) {
   if (!client) return;
@@ -122,5 +220,7 @@ module.exports = {
   isEnabled,
   logFormSubmission,
   upsertCard,
+  upsertClient,
+  searchClients,
   logCardEvent,
 };

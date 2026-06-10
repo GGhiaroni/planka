@@ -109,6 +109,26 @@ async function comercialHandler(req, res) {
       showOnFrontOfCard: !!showOnFront,
     }));
 
+  // Patch canônico do cliente — campos com prefixo POSTO_/VAREJO_/IGREJA_
+  // viram colunas neutras no banco. Vai pro upsert na tabela clients pra
+  // alimentar o autocomplete dos outros forms.
+  const trimOrNull = (k) => (data[k] != null && String(data[k]).trim() !== '' ? String(data[k]).trim() : null);
+  const clientPatch = {
+    name: trimOrNull(flow.nameField),
+    cnpj: trimOrNull(`${tipoRaw}_CNPJ`),
+    tipo: flow.label,
+    bandeira: tipoRaw === 'POSTO' ? trimOrNull('POSTO_BANDEIRA') : null,
+    segmento: tipoRaw === 'VAREJO' ? trimOrNull('VAREJO_SEGMENTO') : null,
+    denominacao: tipoRaw === 'IGREJA' ? trimOrNull('IGREJA_DENOMINACAO') : null,
+    cidade: trimOrNull(`${tipoRaw}_CIDADE`),
+    estado: trimOrNull(`${tipoRaw}_ESTADO`),
+    responsavel: trimOrNull(`${tipoRaw}_RESPONSAVEL`),
+    telefone: trimOrNull(`${tipoRaw}_TELEFONE`),
+    status: trimOrNull(`${tipoRaw}_STATUS`),
+    observacoes: trimOrNull(`${tipoRaw}_OBSERVACOES`),
+    ultimo_vendedor: data.VENDEDOR ? String(data.VENDEDOR).trim() : null,
+  };
+
   const customFieldGroups = [
     {
       name: 'Comercial',
@@ -144,8 +164,8 @@ async function comercialHandler(req, res) {
         board_id: card.boardId ? String(card.boardId) : null,
         list_id: card.listId ? String(card.listId) : null,
         project_name: 'PDView ERP',
-        board_name: 'Comercial',
-        list_name: 'Em Espera',
+        board_name: 'Pedido de Venda',
+        list_name: 'PEDIDO DE VENDA',
         name: cardName,
         description: card.description || null,
         labels: [],
@@ -168,6 +188,8 @@ async function comercialHandler(req, res) {
           attachments: uploadedCount,
         },
       }),
+      // Cadastro canônico do cliente para o autocomplete dos outros forms.
+      supabase.upsertClient(clientPatch),
     ]).catch(() => undefined);
 
     return res.json({ ok: true, tipo: flow.label });

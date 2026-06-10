@@ -420,6 +420,41 @@
     }
 
     .btn-new:hover { background: #3a56d4; }
+
+    /* Typeahead (autocomplete de cliente) */
+    .typeahead { position: relative; }
+    .typeahead-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #4f6bed;
+      border-radius: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 10;
+      display: none;
+    }
+    .typeahead-list.is-open { display: block; }
+    .typeahead-item {
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .typeahead-item:last-child { border-bottom: none; }
+    .typeahead-item:hover,
+    .typeahead-item.is-active { background: #eef0fb; }
+    .typeahead-item-name { font-weight: 600; color: #1a1a2e; }
+    .typeahead-item-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .typeahead-empty {
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: #888;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -436,9 +471,10 @@
     <div class="section">
       <div class="section-title">Identificação do Posto</div>
 
-      <div class="field" style="margin-bottom: 16px;">
+      <div class="field typeahead" id="cliente-typeahead" style="margin-bottom: 16px;">
         <label>Nome do Posto <span class="req">*</span></label>
-        <input type="text" name="NOME DO POSTO" required />
+        <input type="text" name="NOME DO POSTO" id="cliente-input" placeholder="Comece a digitar para usar dados salvos" autocomplete="off" required />
+        <div class="typeahead-list" id="cliente-list" role="listbox"></div>
       </div>
 
       <!-- Bandeira / Cidade / Estado em 3 colunas (Estado é só UF) -->
@@ -647,6 +683,134 @@
     // Pre-fill today's date
     const today = new Date().toISOString().split('T')[0];
     document.querySelector('[name="DATA"]').value = today;
+
+    // Autocomplete de cliente: ao digitar o nome do posto, busca registros
+    // cadastrados via form de Pedido de Venda e preenche o resto dos campos
+    // (Bandeira, Cidade, UF, Responsável, Telefone) — todos editáveis.
+    setupClienteTypeahead({
+      inputId: 'cliente-input',
+      listId: 'cliente-list',
+      onSelect: (c) => {
+        const setIfEmpty = (selector, value) => {
+          if (!value) return;
+          const el = document.querySelector(selector);
+          if (el && !el.value) el.value = value;
+        };
+        // Bandeira do Posto — select com options em uppercase.
+        if (c.tipo === 'Posto' && c.bandeira) {
+          const bandeiraEl = document.querySelector('[name="BANDEIRA"]');
+          if (bandeiraEl && !bandeiraEl.value) {
+            const wanted = String(c.bandeira).toUpperCase().trim();
+            const match = Array.from(bandeiraEl.options).find(
+              (o) => o.value.toUpperCase() === wanted,
+            );
+            if (match) bandeiraEl.value = match.value;
+          }
+        }
+        setIfEmpty('[name="CIDADE"]', c.cidade);
+        if (c.estado) {
+          const ufEl = document.querySelector('[name="ESTADO"]');
+          if (ufEl && !ufEl.value) ufEl.value = String(c.estado).toUpperCase().slice(0, 2);
+        }
+        setIfEmpty('[name="NOME RESPONSÁVEL"]', c.responsavel);
+        setIfEmpty('[name="TLEFONE RESPONSÁVEL"]', c.telefone);
+      },
+    });
+
+    function setupClienteTypeahead({ inputId, listId, onSelect }) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      let debounceTimer = null;
+      let activeIndex = -1;
+      let items = [];
+
+      function close() {
+        list.classList.remove('is-open');
+        activeIndex = -1;
+      }
+      function render(results) {
+        items = results;
+        list.innerHTML = '';
+        if (results.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'typeahead-empty';
+          empty.textContent = 'Nenhum cliente encontrado.';
+          list.appendChild(empty);
+          list.classList.add('is-open');
+          return;
+        }
+        results.forEach((c, idx) => {
+          const item = document.createElement('div');
+          item.className = 'typeahead-item';
+          item.setAttribute('role', 'option');
+          const meta = [c.tipo, [c.cidade, c.estado].filter(Boolean).join('/')]
+            .filter(Boolean)
+            .join(' · ');
+          const nameEl = document.createElement('div');
+          nameEl.className = 'typeahead-item-name';
+          nameEl.textContent = c.name;
+          item.appendChild(nameEl);
+          if (meta) {
+            const metaEl = document.createElement('div');
+            metaEl.className = 'typeahead-item-meta';
+            metaEl.textContent = meta;
+            item.appendChild(metaEl);
+          }
+          item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            select(idx);
+          });
+          list.appendChild(item);
+        });
+        list.classList.add('is-open');
+      }
+      function select(idx) {
+        const c = items[idx];
+        if (!c) return;
+        input.value = c.name;
+        onSelect(c);
+        close();
+      }
+      function highlight(idx) {
+        const els = list.querySelectorAll('.typeahead-item');
+        els.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+      }
+      async function fetchAndRender() {
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        try {
+          const res = await fetch('/api/clientes/search?q=' + encodeURIComponent(q));
+          const body = await res.json();
+          render(body.items || []);
+        } catch {
+          close();
+        }
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchAndRender, 200);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (!list.classList.contains('is-open')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          highlight(activeIndex);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          highlight(activeIndex);
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+          e.preventDefault();
+          select(activeIndex);
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(close, 120);
+      });
+    }
 
     const form = document.getElementById('form');
     const submitBtn = document.getElementById('submitBtn');

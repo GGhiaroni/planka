@@ -117,7 +117,7 @@ async function manutencaoHandler(req, res) {
     console.error('[ticket-form] failed to resolve Planka IDs:', err.message);
     return res.status(500).json({
       error:
-        'Não foi possível localizar os boards "Chamados Técnicos" ou "Atendimento". Verifique se eles existem no Planka.',
+        'Não foi possível localizar os boards "Operacional" ou "Atendimento". Verifique se eles existem no Planka.',
     });
   }
 
@@ -205,7 +205,7 @@ async function manutencaoHandler(req, res) {
         board_id: opCard.boardId ? String(opCard.boardId) : null,
         list_id: opCard.listId ? String(opCard.listId) : null,
         project_name: 'PDView ERP',
-        board_name: 'Chamados Técnicos',
+        board_name: 'Operacional',
         list_name: 'CHAMADOS',
         name: cardName,
         description: opCard.description || null,

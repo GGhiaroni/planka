@@ -193,7 +193,7 @@ async function gformsHandler(req, res) {
         board_id: card.boardId ? String(card.boardId) : null,
         list_id: card.listId ? String(card.listId) : null,
         project_name: 'PDView ERP',
-        board_name: 'Design',
+        board_name: 'Artes',
         list_name: 'Demanda',
         name: cardName,
         description: card.description || null,
