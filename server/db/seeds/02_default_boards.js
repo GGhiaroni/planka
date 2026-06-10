@@ -1,47 +1,58 @@
 /*!
- * Seeds the default Planka workspace expected by the ticket-form service:
- *   - Project   "PDView ERP"   (created if no project of that name exists)
- *   - Board     "Design"       — kanban view, lists: Demanda, Produção,
- *                                Aprovação, Entregue, Falar com o cliente
- *   - Board     "Chamados Técnicos" — table view, lists: Em Espera, Em
- *                                Execução, Executados, Falar com o cliente,
- *                                plus 8 priority labels.
+ * Seeds the default Planka workspace expected by the ticket-form service.
  *
- * Fully idempotent: nothing is recreated when the records already exist.
- * Safe to re-run on every deploy via `npm run db:init`.
+ * Boards seeded under "PDView ERP" project:
+ *   - Design        — kanban — lists: PEDIDO DE ARTE, EXECUTADO (closed)
+ *   - Chamados Técnicos (a.k.a. "Operacional")
+ *                   — table  — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
+ *                            — labels: ASSISTÊNCIA TÉCNICA, INSTALAÇÃO
+ *                                      (+ 8 legacy priority labels kept)
+ *   - Comercial     — table  — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
+ *                                     OS CHAMADO (intake/triage board)
+ *   - Atendimento   — kanban — lists: AGENDAR TREINAMENTO,
+ *                                     TREINAMENTO EXECUTADO, CHAMADOS,
+ *                                     EM ANDAMENTO, CONCLUÍDO (closed)
+ *                            — labels: same 2 as Operacional (mirrored)
+ *
+ * The seed is idempotent: existing rows keep their IDs, names are migrated
+ * in-place via renameLegacyLists (so existing cards stay linked), and
+ * 06/2026 column renames are applied on every run.
  */
 
 const PROJECT_NAME = 'PDView ERP';
 const POSITION_GAP = 65536;
 
-// `type: 'active'` is the default. `type: 'closed'` represents the
-// "Finalizado/Concluído" column — moving a card into it triggers the
-// auto "Chamado finalizado em" timestamp + 30-day auto-archive sweep.
-const DESIGN_LISTS = [
-  { name: 'Demanda' },
-  { name: 'Produção' },
-  { name: 'Aprovação' },
-  { name: 'Entregue' },
-  { name: 'Falar com o cliente' },
-  { name: 'Finalizado', type: 'closed' },
-];
+// `type: 'active'` is the default. `type: 'closed'` represents the final
+// "Concluído" column — moving a card there triggers the auto-archive sweep
+// after AUTO_ARCHIVE_CLOSED_AFTER_DAYS days.
+const DESIGN_LISTS = [{ name: 'PEDIDO DE ARTE' }, { name: 'EXECUTADO', type: 'closed' }];
 
-// "Executados" is the natural "concluded" column on the Chamados board, so
-// it doubles as the `closed`-typed list. No separate "Finalizado" list here.
 const CHAMADOS_LISTS = [
-  { name: 'Em Espera' },
-  { name: 'Em Execução' },
-  { name: 'Executados', type: 'closed' },
+  { name: 'CHAMADOS' },
+  { name: 'ROTA' },
+  { name: 'CONCLUÍDO', type: 'closed' },
 ];
 
-// Board Comercial — mesma estrutura inicial do Chamados (3 listas, sendo
-// "Executados" o estado `closed`). O time pode renomear/extender depois.
+// Comercial é um board de *intake/triagem* — colunas categoriais, sem
+// estado de conclusão. As 3 colunas representam o tipo de solicitação que
+// o time recebe; ninguém é movido pra "concluído" aqui.
 const COMERCIAL_LISTS = [
-  { name: 'Em Espera' },
-  { name: 'Em Execução' },
-  { name: 'Executados', type: 'closed' },
+  { name: 'PEDIDO DE VENDA' },
+  { name: 'PEDIDO DE ARTE' },
+  { name: 'OS CHAMADO' },
 ];
 
+const ATENDIMENTO_LISTS = [
+  { name: 'AGENDAR TREINAMENTO' },
+  { name: 'TREINAMENTO EXECUTADO' },
+  { name: 'CHAMADOS' },
+  { name: 'EM ANDAMENTO' },
+  { name: 'CONCLUÍDO', type: 'closed' },
+];
+
+// 8 priority labels herdadas dos formularios antigos. Mantidas porque o
+// time ainda usa manualmente — o novo form de chamado (PR #21) não atribui
+// prioridade automaticamente.
 const PRIORITY_LABELS = [
   { name: 'BAIXA PRIORIDADE', color: 'bright-moss' },
   { name: 'MÉDIA GRAVIDADE', color: 'egg-yellow' },
@@ -52,6 +63,40 @@ const PRIORITY_LABELS = [
   { name: 'EM ESPERA', color: 'pink-tulip' },
   { name: 'MÁXIMA PRIORIDADE', color: 'lilac-eyes' },
 ];
+
+// Rótulos novos (06/2026) que classificam o chamado em "Instalação" ou
+// "Assistência Técnica" — aplicados tanto no board Operacional quanto no
+// Atendimento, já que cada chamado vira 2 cards (um em cada board) e o
+// futuro espelhamento precisa do mesmo label dos 2 lados.
+const TIPO_CHAMADO_LABELS = [
+  { name: 'ASSISTÊNCIA TÉCNICA', color: 'pumpkin-orange' },
+  { name: 'INSTALAÇÃO', color: 'turquoise-sea' },
+];
+
+// Renames idempotentes: mapeia nome antigo → { name, type } novo. A função
+// renameLegacyLists procura cada nome antigo e renomeia in-place, então
+// cards existentes continuam linkados sem precisar de migração.
+const LIST_RENAMES = {
+  Design: {
+    Demanda: { name: 'PEDIDO DE ARTE', type: 'active' },
+    Finalizado: { name: 'EXECUTADO', type: 'closed' },
+  },
+  'Chamados Técnicos': {
+    'Em Espera': { name: 'CHAMADOS', type: 'active' },
+    'Em Execução': { name: 'ROTA', type: 'active' },
+    Executados: { name: 'CONCLUÍDO', type: 'closed' },
+  },
+  Comercial: {
+    'Em Espera': { name: 'PEDIDO DE VENDA', type: 'active' },
+    'Em Execução': { name: 'PEDIDO DE ARTE', type: 'active' },
+    Executados: { name: 'OS CHAMADO', type: 'active' },
+  },
+};
+
+// Listas legadas do Design que vão sumir (Produção/Aprovação/Entregue/Falar
+// com o cliente). Cards são realocados para PEDIDO DE ARTE antes da exclusão
+// para não perder dados.
+const DESIGN_LEGACY_LISTS_TO_MIGRATE = ['Produção', 'Aprovação', 'Entregue', 'Falar com o cliente'];
 
 async function ensureProject(knex, adminUserId) {
   const existing = await knex('project').where('name', PROJECT_NAME).first();
@@ -85,11 +130,24 @@ async function ensureProject(knex, adminUserId) {
 }
 
 // Reuses an existing board with the given name (in ANY project) before
-// creating a new one. Returns { boardId, projectId }.
+// creating a new one. Returns { boardId, projectId }. Boards encontrados
+// em outro projeto são migrados para `fallbackProjectId` — isso conserta
+// instalações antigas onde cada board ficava no seu próprio projeto
+// auto-criado pelo Planka (ex.: project "Chamados Técnicos" → board
+// "Chamados Técnicos"), o que quebra o lookup do ticket-form que sempre
+// procura dentro do projeto canônico "PDView ERP".
 async function ensureBoard(knex, fallbackProjectId, name, defaultView, position) {
   const existing = await knex('board').where({ name }).first();
   if (existing) {
-    return { boardId: existing.id, projectId: existing.project_id };
+    if (existing.project_id !== fallbackProjectId) {
+      await knex('board').where({ id: existing.id }).update({ project_id: fallbackProjectId });
+      // Move também as memberships para o projeto canônico, senão usuários
+      // perdem permissão no board após o move.
+      await knex('board_membership')
+        .where({ board_id: existing.id })
+        .update({ project_id: fallbackProjectId });
+    }
+    return { boardId: existing.id, projectId: fallbackProjectId };
   }
 
   const now = new Date().toISOString();
@@ -129,6 +187,51 @@ async function ensureBoardMembership(knex, projectId, boardId, userId) {
     created_at: now,
     updated_at: now,
   });
+}
+
+// Renames any list whose name matches an entry in LIST_RENAMES for the given
+// board. Updates the list's `type` to match (handling both active→closed and
+// closed→active transitions) and keeps `card.is_closed` in sync. Cards stay
+// linked to the renamed list, so no data is lost.
+async function renameLegacyLists(knex, boardId, boardName) {
+  const renames = Object.entries(LIST_RENAMES[boardName] || {});
+  for (let i = 0; i < renames.length; i += 1) {
+    const [oldName, { name: newName, type: newType }] = renames[i];
+    // eslint-disable-next-line no-await-in-loop
+    const existing = await knex('list').where({ board_id: boardId, name: oldName }).first();
+    if (existing) {
+      // eslint-disable-next-line no-await-in-loop
+      await knex('list').where({ id: existing.id }).update({ name: newName, type: newType });
+      // eslint-disable-next-line no-await-in-loop
+      await knex('card')
+        .where({ list_id: existing.id })
+        .update({ is_closed: newType === 'closed' });
+    }
+  }
+}
+
+// Migrates cards from now-defunct Design lists (Produção/Aprovação/...) into
+// PEDIDO DE ARTE, then deletes the old lists. Safe to run repeatedly — only
+// fires when both source and destination lists are present.
+async function migrateLegacyDesignLists(knex, boardId) {
+  const destination = await knex('list')
+    .where({ board_id: boardId, name: 'PEDIDO DE ARTE' })
+    .first();
+  if (!destination) return;
+
+  for (let i = 0; i < DESIGN_LEGACY_LISTS_TO_MIGRATE.length; i += 1) {
+    const oldName = DESIGN_LEGACY_LISTS_TO_MIGRATE[i];
+    // eslint-disable-next-line no-await-in-loop
+    const old = await knex('list').where({ board_id: boardId, name: oldName }).first();
+    if (old) {
+      // eslint-disable-next-line no-await-in-loop
+      await knex('card')
+        .where({ list_id: old.id })
+        .update({ list_id: destination.id, is_closed: false });
+      // eslint-disable-next-line no-await-in-loop
+      await knex('list').where({ id: old.id }).delete();
+    }
+  }
 }
 
 async function ensureList(knex, boardId, name, position, type = 'active') {
@@ -177,6 +280,22 @@ async function ensureLabel(knex, boardId, name, color, position) {
   return id;
 }
 
+async function seedListsOnBoard(knex, boardId, lists) {
+  for (let i = 0; i < lists.length; i += 1) {
+    const { name, type } = lists[i];
+    // eslint-disable-next-line no-await-in-loop
+    await ensureList(knex, boardId, name, (i + 1) * POSITION_GAP, type);
+  }
+}
+
+async function seedLabelsOnBoard(knex, boardId, labels, positionStart = POSITION_GAP) {
+  for (let i = 0; i < labels.length; i += 1) {
+    const { name, color } = labels[i];
+    // eslint-disable-next-line no-await-in-loop
+    await ensureLabel(knex, boardId, name, color, positionStart + i * POSITION_GAP);
+  }
+}
+
 exports.seed = async (knex) => {
   const admin = await knex('user_account').where('role', 'admin').orderBy('id').first();
   if (!admin) {
@@ -195,14 +314,11 @@ exports.seed = async (knex) => {
     POSITION_GAP,
   );
   await ensureBoardMembership(knex, designProjectId, designBoardId, admin.id);
+  await renameLegacyLists(knex, designBoardId, 'Design');
+  await migrateLegacyDesignLists(knex, designBoardId);
+  await seedListsOnBoard(knex, designBoardId, DESIGN_LISTS);
 
-  for (let i = 0; i < DESIGN_LISTS.length; i += 1) {
-    const { name, type } = DESIGN_LISTS[i];
-    // eslint-disable-next-line no-await-in-loop
-    await ensureList(knex, designBoardId, name, (i + 1) * POSITION_GAP, type);
-  }
-
-  // --- Chamados Técnicos board ---
+  // --- Chamados Técnicos board (a.k.a. Operacional) ---
   const { boardId: chamadosBoardId, projectId: chamadosProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
@@ -211,54 +327,53 @@ exports.seed = async (knex) => {
     POSITION_GAP * 2,
   );
   await ensureBoardMembership(knex, chamadosProjectId, chamadosBoardId, admin.id);
+  await renameLegacyLists(knex, chamadosBoardId, 'Chamados Técnicos');
+  await seedListsOnBoard(knex, chamadosBoardId, CHAMADOS_LISTS);
 
-  for (let i = 0; i < CHAMADOS_LISTS.length; i += 1) {
-    const { name, type } = CHAMADOS_LISTS[i];
-    // eslint-disable-next-line no-await-in-loop
-    await ensureList(knex, chamadosBoardId, name, (i + 1) * POSITION_GAP, type);
-  }
-
-  // Get Executados id for migrations below.
-  const executados = await knex('list')
-    .where({ board_id: chamadosBoardId, name: 'Executados' })
+  // Migra duplicatas legacy de "Finalizado/Finalizados" → CONCLUÍDO. Roda
+  // só se a coluna CONCLUÍDO já existir (rename + seed acima garantem isso).
+  // Cards são realocados; o stray "Falar com o cliente" só é apagado se
+  // estiver vazio (não temos para onde migrar com segurança).
+  const concluido = await knex('list')
+    .where({ board_id: chamadosBoardId, name: 'CONCLUÍDO' })
     .first();
-
-  // Remove redundant lists from the Chamados board:
-  //   - "Falar com o cliente"        (kept only on Design)
-  //   - "Finalizado" / "Finalizados" (Executados already plays that role)
-  // Cards living on stray "Finalizado*" lists are migrated to Executados; the
-  // stale list is then deleted. "Falar com o cliente" is only deleted when
-  // empty (cards on it would be lost — not safe to migrate elsewhere).
-  const FINALIZED_DUPES = ['Finalizado', 'Finalizados'];
-  if (executados) {
+  if (concluido) {
     const dupes = await knex('list')
       .where({ board_id: chamadosBoardId })
-      .whereIn('name', FINALIZED_DUPES);
+      .whereIn('name', ['Finalizado', 'Finalizados']);
     await Promise.all(
       dupes.map(async (dupe) => {
         await knex('card')
           .where({ list_id: dupe.id })
-          .update({ list_id: executados.id, is_closed: true });
+          .update({ list_id: concluido.id, is_closed: true });
         await knex('list').where({ id: dupe.id }).delete();
       }),
     );
   }
 
-  const stray = await knex('list')
+  const strayChamados = await knex('list')
     .where({ board_id: chamadosBoardId, name: 'Falar com o cliente' })
     .first();
-  if (stray) {
-    const cardCount = await knex('card').where({ list_id: stray.id }).count('id as n').first();
+  if (strayChamados) {
+    const cardCount = await knex('card')
+      .where({ list_id: strayChamados.id })
+      .count('id as n')
+      .first();
     if (Number(cardCount.n) === 0) {
-      await knex('list').where({ id: stray.id }).delete();
+      await knex('list').where({ id: strayChamados.id }).delete();
     }
   }
 
-  for (let i = 0; i < PRIORITY_LABELS.length; i += 1) {
-    const { name, color } = PRIORITY_LABELS[i];
-    // eslint-disable-next-line no-await-in-loop
-    await ensureLabel(knex, chamadosBoardId, name, color, (i + 1) * POSITION_GAP);
-  }
+  await seedLabelsOnBoard(knex, chamadosBoardId, PRIORITY_LABELS);
+  // Tipo de chamado labels come AFTER priority labels in position order so
+  // they show up at the bottom of the label picker without disturbing the
+  // existing priority ordering the team is used to.
+  await seedLabelsOnBoard(
+    knex,
+    chamadosBoardId,
+    TIPO_CHAMADO_LABELS,
+    POSITION_GAP * (PRIORITY_LABELS.length + 1),
+  );
 
   // --- Comercial board ---
   const { boardId: comercialBoardId, projectId: comercialProjectId } = await ensureBoard(
@@ -269,10 +384,20 @@ exports.seed = async (knex) => {
     POSITION_GAP * 3,
   );
   await ensureBoardMembership(knex, comercialProjectId, comercialBoardId, admin.id);
+  await renameLegacyLists(knex, comercialBoardId, 'Comercial');
+  await seedListsOnBoard(knex, comercialBoardId, COMERCIAL_LISTS);
 
-  for (let i = 0; i < COMERCIAL_LISTS.length; i += 1) {
-    const { name, type } = COMERCIAL_LISTS[i];
-    // eslint-disable-next-line no-await-in-loop
-    await ensureList(knex, comercialBoardId, name, (i + 1) * POSITION_GAP, type);
-  }
+  // --- Atendimento board (06/2026) ---
+  const { boardId: atendimentoBoardId, projectId: atendimentoProjectId } = await ensureBoard(
+    knex,
+    fallbackProjectId,
+    'Atendimento',
+    'kanban',
+    POSITION_GAP * 4,
+  );
+  await ensureBoardMembership(knex, atendimentoProjectId, atendimentoBoardId, admin.id);
+  await seedListsOnBoard(knex, atendimentoBoardId, ATENDIMENTO_LISTS);
+  // Mesmos labels do board Operacional — o card espelhado precisa carregar
+  // o mesmo rótulo (a integração de espelhamento entra em PR seguinte).
+  await seedLabelsOnBoard(knex, atendimentoBoardId, TIPO_CHAMADO_LABELS);
 };

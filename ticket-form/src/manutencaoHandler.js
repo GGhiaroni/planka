@@ -3,13 +3,27 @@
 const {
   createCardInList,
   createCardCustomFieldGroups,
+  attachLabel,
   getChamadosListId,
+  getChamadosBoardId,
+  getAtendimentoListId,
+  getAtendimentoBoardId,
+  getLabelIdOnBoard,
   uploadAttachmentsFromMulter,
 } = require('./planka');
 const supabase = require('./supabase');
 
 const TIPOS_SERVICO = ['Venda', 'Locação', 'Assistência Técnica'];
 const DEMANDAS_VALIDAS = ['Elétrica', 'Rede', 'Alvenaria', 'Disjuntor'];
+
+// Mapeia o "Tipo de Serviço" do form pro rótulo colorido aplicado no card.
+// Venda + Locação → equipe vai *instalar* algo; Assistência Técnica → suporte.
+// Os rótulos são criados pelo seed nos boards Operacional e Atendimento.
+const TIPO_LABEL_MAP = {
+  Venda: 'INSTALAÇÃO',
+  Locação: 'INSTALAÇÃO',
+  'Assistência Técnica': 'ASSISTÊNCIA TÉCNICA',
+};
 
 function generateOsNumber() {
   const now = new Date();
@@ -39,6 +53,21 @@ function formatDateBr(iso) {
   return `${d}/${m}/${y}`;
 }
 
+// Creates one card on a target list and applies the standard chamado payload:
+// custom fields, optional label, optional attachments. Reused for both the
+// Operacional and Atendimento cards (the chamado is intentionally mirrored
+// since the spec is "atendimento recebe e encaminha para o operacional").
+// Returns the created card item.
+async function createChamadoCard({ listId, cardName, customFieldGroups, labelId, files }) {
+  const { item: card } = await createCardInList(listId, cardName, '');
+  await createCardCustomFieldGroups(card.id, customFieldGroups);
+  if (labelId) await attachLabel(card.id, labelId);
+  if (files && files.length > 0) {
+    await uploadAttachmentsFromMulter(card.id, files);
+  }
+  return card;
+}
+
 async function manutencaoHandler(req, res) {
   const data = req.body || {};
 
@@ -58,25 +87,43 @@ async function manutencaoHandler(req, res) {
       return res.status(400).json({ error: `Campo obrigatório ausente: ${field}` });
     }
   }
-  if (!TIPOS_SERVICO.includes(String(data.tipoServico).trim())) {
+  const tipoServico = String(data.tipoServico).trim();
+  if (!TIPOS_SERVICO.includes(tipoServico)) {
     return res.status(400).json({ error: `Tipo de serviço inválido: ${data.tipoServico}` });
   }
 
-  let chamadosListId;
+  // Resolve target lists + label IDs ahead of time so an inexistent board
+  // fails the request *before* we partially create cards across boards.
+  let operacionalListId;
+  let atendimentoListId;
+  let operacionalLabelId = null;
+  let atendimentoLabelId = null;
   try {
-    chamadosListId = await getChamadosListId();
+    operacionalListId = await getChamadosListId();
+    atendimentoListId = await getAtendimentoListId();
+
+    const tipoLabelName = TIPO_LABEL_MAP[tipoServico];
+    if (tipoLabelName) {
+      const [opBoardId, atBoardId] = await Promise.all([
+        getChamadosBoardId(),
+        getAtendimentoBoardId(),
+      ]);
+      [operacionalLabelId, atendimentoLabelId] = await Promise.all([
+        getLabelIdOnBoard(opBoardId, tipoLabelName),
+        getLabelIdOnBoard(atBoardId, tipoLabelName),
+      ]);
+    }
   } catch (err) {
     console.error('[ticket-form] failed to resolve Planka IDs:', err.message);
     return res.status(500).json({
       error:
-        'Não foi possível localizar o board "Chamados Técnicos". Verifique se ele existe no Planka.',
+        'Não foi possível localizar os boards "Chamados Técnicos" ou "Atendimento". Verifique se eles existem no Planka.',
     });
   }
 
   const os = generateOsNumber();
   const now = new Date();
   const openedAt = now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  const tipoServico = String(data.tipoServico).trim();
   const cliente = String(data.cliente).trim();
   const demandas = normalizeDemandas(data.demandas);
   const observacoes = data.observacoes ? String(data.observacoes).trim() : '';
@@ -113,51 +160,83 @@ async function manutencaoHandler(req, res) {
     });
   }
 
+  const customFieldsForSupabase = customFieldGroups.reduce((acc, group) => {
+    acc[group.name] = group.fields.reduce((m, f) => {
+      m[f.name] = f.value;
+      return m;
+    }, {});
+    return acc;
+  }, {});
+
   try {
-    const { item: card } = await createCardInList(chamadosListId, cardName, '');
-    await createCardCustomFieldGroups(card.id, customFieldGroups);
+    // Cria o card no Operacional + Atendimento em paralelo. Os 2 são
+    // independentes (o espelhamento de estado entra em um PR seguinte).
+    const [opCard, atCard] = await Promise.all([
+      createChamadoCard({
+        listId: operacionalListId,
+        cardName,
+        customFieldGroups,
+        labelId: operacionalLabelId,
+        files: req.files,
+      }),
+      createChamadoCard({
+        listId: atendimentoListId,
+        cardName,
+        customFieldGroups,
+        labelId: atendimentoLabelId,
+        files: req.files,
+      }),
+    ]);
 
-    // Upload any optional image attachments (best-effort, never blocks).
-    const uploadedCount = await uploadAttachmentsFromMulter(card.id, req.files);
-
-    // Mirror to Supabase (best-effort).
+    // Mirror to Supabase (best-effort). Logamos o card "principal"
+    // (Operacional) na tabela cards e referenciamos o gêmeo do Atendimento
+    // no payload do evento — assim a sincronização futura tem como achar
+    // o par sem precisar de uma tabela nova.
     Promise.all([
       supabase.logFormSubmission({
         formType: 'chamado',
         payload: data,
-        plankaCardId: card.id,
+        plankaCardId: opCard.id,
         osNumber: os,
         status: 'created',
       }),
       supabase.upsertCard({
-        planka_id: String(card.id),
-        board_id: card.boardId ? String(card.boardId) : null,
-        list_id: card.listId ? String(card.listId) : null,
+        planka_id: String(opCard.id),
+        board_id: opCard.boardId ? String(opCard.boardId) : null,
+        list_id: opCard.listId ? String(opCard.listId) : null,
         project_name: 'PDView ERP',
         board_name: 'Chamados Técnicos',
-        list_name: 'Em Espera',
+        list_name: 'CHAMADOS',
         name: cardName,
-        description: card.description || null,
-        labels: [],
-        custom_fields: customFieldGroups.reduce((acc, group) => {
-          acc[group.name] = group.fields.reduce((m, f) => {
-            m[f.name] = f.value;
-            return m;
-          }, {});
-          return acc;
-        }, {}),
+        description: opCard.description || null,
+        labels: operacionalLabelId ? [{ name: TIPO_LABEL_MAP[tipoServico] }] : [],
+        custom_fields: customFieldsForSupabase,
+      }),
+      supabase.upsertCard({
+        planka_id: String(atCard.id),
+        board_id: atCard.boardId ? String(atCard.boardId) : null,
+        list_id: atCard.listId ? String(atCard.listId) : null,
+        project_name: 'PDView ERP',
+        board_name: 'Atendimento',
+        list_name: 'CHAMADOS',
+        name: cardName,
+        description: atCard.description || null,
+        labels: atendimentoLabelId ? [{ name: TIPO_LABEL_MAP[tipoServico] }] : [],
+        custom_fields: customFieldsForSupabase,
       }),
       supabase.logCardEvent({
-        plankaCardId: card.id,
+        plankaCardId: opCard.id,
         eventType: 'form_submit_chamado',
         data: {
           source: 'ticket-form',
           os_number: os,
           opened_at: openedAt,
           tipo_servico: tipoServico,
+          tipo_label: TIPO_LABEL_MAP[tipoServico] || null,
           vendedor: String(data.vendedor).trim(),
           demandas,
-          attachments: uploadedCount,
+          attachments: Array.isArray(req.files) ? req.files.length : 0,
+          mirror_atendimento_card_id: String(atCard.id),
         },
       }),
     ]).catch(() => undefined);
