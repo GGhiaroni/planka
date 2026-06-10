@@ -13,6 +13,8 @@ const {
   PLANKA_CHAMADOS_LIST_NAME,
   PLANKA_COMERCIAL_BOARD_NAME,
   PLANKA_COMERCIAL_LIST_NAME,
+  PLANKA_ATENDIMENTO_BOARD_NAME,
+  PLANKA_ATENDIMENTO_LIST_NAME,
 } = config;
 
 // Module-level token cache shared across all requests in this process.
@@ -62,6 +64,11 @@ const idCache = {
   chamadosBoardId: null,
   comercialBoardId: null,
   comercialListId: null,
+  atendimentoBoardId: null,
+  atendimentoListId: null,
+  // boardId → { labelName → labelId } cached label lookups, populated
+  // lazily by getLabelIdOnBoard.
+  labelsByBoard: {},
 };
 
 async function apiGet(path) {
@@ -173,6 +180,42 @@ async function getComercialListId() {
   }
   idCache.comercialListId = listId;
   return listId;
+}
+
+async function getAtendimentoBoardId() {
+  if (idCache.atendimentoBoardId) return idCache.atendimentoBoardId;
+  const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_ATENDIMENTO_BOARD_NAME);
+  if (!boardId) {
+    throw new Error(
+      `Could not find board "${PLANKA_ATENDIMENTO_BOARD_NAME}" inside project "${PLANKA_PROJECT_NAME}"`,
+    );
+  }
+  idCache.atendimentoBoardId = boardId;
+  return boardId;
+}
+
+async function getAtendimentoListId() {
+  if (idCache.atendimentoListId) return idCache.atendimentoListId;
+  const boardId = await getAtendimentoBoardId();
+  const listId = await findListIdInBoard(boardId, PLANKA_ATENDIMENTO_LIST_NAME);
+  if (!listId) {
+    throw new Error(
+      `Could not find list "${PLANKA_ATENDIMENTO_LIST_NAME}" on board "${PLANKA_ATENDIMENTO_BOARD_NAME}"`,
+    );
+  }
+  idCache.atendimentoListId = listId;
+  return listId;
+}
+
+// Generic lookup: returns the labelId for a given (boardId, labelName), or
+// null if it doesn't exist on that board. Caches per-board to avoid hitting
+// the API on every form submission.
+async function getLabelIdOnBoard(boardId, labelName) {
+  if (!boardId || !labelName) return null;
+  if (!idCache.labelsByBoard[boardId]) {
+    idCache.labelsByBoard[boardId] = await indexLabelsInBoard(boardId);
+  }
+  return idCache.labelsByBoard[boardId][labelName] || null;
 }
 
 async function getPriorityLabelId(priorityName) {
@@ -432,5 +475,8 @@ module.exports = {
   getChamadosBoardId,
   getComercialBoardId,
   getComercialListId,
+  getAtendimentoBoardId,
+  getAtendimentoListId,
+  getLabelIdOnBoard,
   getPriorityLabelId,
 };
