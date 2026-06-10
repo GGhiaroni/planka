@@ -146,6 +146,30 @@
       cursor: pointer;
     }
 
+    /* Choice cards (Tipo de Serviço, Demandas) */
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .choice-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 10px;
+      border: 2px solid #e2e6ee;
+      border-radius: 10px;
+      background: #fafbfd;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, transform .1s;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .choice-card:hover { border-color: #d32f2f; background: #fef2f2; transform: translateY(-1px); }
+    .choice-card:has(input:checked) { border-color: #d32f2f; background: #fef2f2; }
+    .choice-card input { position: absolute; opacity: 0; pointer-events: none; }
+    .choice-card-icon { font-size: 1.3rem; line-height: 1; }
+
     /* Attachments uploader */
     .anexos-uploader { display: flex; flex-direction: column; gap: 12px; }
     .upload-zone {
@@ -342,96 +366,126 @@
 
   <form id="form">
 
-    <!-- IDENTIFICAÇÃO -->
+    <!-- CLIENTE E CONTATO -->
     <div class="section">
-      <div class="section-title">Identificação</div>
+      <div class="section-title">Cliente e Contato</div>
       <div class="grid-2">
         <div class="field full">
-          <label>Cliente / Nome do Posto <span class="req">*</span></label>
-          <input type="text" name="cliente" required />
+          <label>Cliente <span class="req">*</span></label>
+          <input type="text" name="cliente" placeholder="Ex: Posto Mineirão" required />
         </div>
         <div class="field">
-          <label>Rede</label>
-          <input type="text" name="rede" placeholder="Ex: ELLG, PostosRios" />
+          <label>Nome do Contato <span class="req">*</span></label>
+          <input type="text" name="nomeContato" required />
         </div>
         <div class="field">
-          <label>Bandeira ou Tipo <span class="req">*</span></label>
-          <select name="bandeira" required>
-            <option value="" disabled selected>Selecione...</option>
-            <option>Shell</option>
-            <option>Petrobras</option>
-            <option>Ipiranga</option>
-            <option>Ale</option>
-            <option>Petronas</option>
-            <option>Rodoil</option>
-            <option>Branca</option>
-            <option>BR</option>
-            <option>Loja</option>
-            <option>Outros</option>
-          </select>
+          <label>Telefone do Contato <span class="req">*</span></label>
+          <input type="tel" name="telefoneContato" placeholder="(11) 99999-9999" required />
         </div>
       </div>
     </div>
 
-    <!-- LOCALIZAÇÃO -->
+    <!-- VENDEDOR -->
     <div class="section">
-      <div class="section-title">Localização</div>
+      <div class="section-title">Vendedor</div>
+      <div class="field">
+        <label>Nome do Vendedor <span class="req">*</span></label>
+        <select name="vendedor" required>
+          <option value="" disabled selected>Selecione...</option>
+          <option>Marilyn</option>
+          <option>Priscila</option>
+          <option>Mary</option>
+          <option>Thiago</option>
+          <option>Eduardo</option>
+          <option>Mello</option>
+          <option>Márcio</option>
+          <option>Fabrício</option>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SERVIÇO -->
+    <div class="section">
+      <div class="section-title">Serviço</div>
       <div class="grid-2">
-        <div class="field full">
-          <label>Endereço (Rua, Nº, Bairro)</label>
-          <input type="text" name="endereco" placeholder="R. das Flores, 123 - Centro" />
+        <div class="field">
+          <label>Data do Chamado <span class="req">*</span></label>
+          <input type="date" name="dataChamado" id="dataChamado" required />
         </div>
-        <div class="grid-3 field full" style="display: grid; gap: 16px;">
-          <div class="field">
-            <label>Cidade <span class="req">*</span></label>
-            <input type="text" name="cidade" required />
+        <div class="field">
+          <label>Prazo de Execução <span class="req">*</span></label>
+          <input type="text" name="prazoExecucao" placeholder="Ex: 20 dias" required />
+        </div>
+        <div class="field full">
+          <label>Tipo de Serviço <span class="req">*</span></label>
+          <div class="choice-grid">
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Venda" required />
+              <span class="choice-card-icon">💰</span>
+              <span>Venda</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Locação" required />
+              <span class="choice-card-icon">📦</span>
+              <span>Locação</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Assistência Técnica" required />
+              <span class="choice-card-icon">🔧</span>
+              <span>Assistência Técnica</span>
+            </label>
           </div>
-          <div class="field">
-            <label>Estado <span class="req">*</span></label>
-            <input type="text" name="estado" maxlength="2" placeholder="RJ" required
-              style="text-transform: uppercase;" />
-          </div>
-          <div class="field">
-            <label>CEP</label>
-            <input type="text" name="cep" id="cep" maxlength="9" placeholder="00000-000" />
-          </div>
+        </div>
+        <div class="field full">
+          <label>Endereço do Serviço <span class="req">*</span></label>
+          <input type="text" name="enderecoServico" placeholder="Rua, Nº, Bairro, Cidade - UF" required />
         </div>
       </div>
     </div>
 
-    <!-- CHAMADO -->
+    <!-- DEMANDAS -->
     <div class="section">
-      <div class="section-title">Chamado</div>
-      <div class="grid-2">
-        <div class="field">
-          <label>Prioridade <span class="req">*</span></label>
-          <select name="prioridade" required>
-            <option value="" disabled selected>Selecione...</option>
-            <option value="MÁXIMA PRIORIDADE">🟣 MÁXIMA PRIORIDADE</option>
-            <option value="URGÊNCIA">🔴 URGÊNCIA</option>
-            <option value="MÉDIA GRAVIDADE">🟡 MÉDIA GRAVIDADE</option>
-            <option value="BAIXA PRIORIDADE">🟢 BAIXA PRIORIDADE</option>
-            <option value="PENDÊNCIAS DE INSTALAÇÃO">🟠 PENDÊNCIAS DE INSTALAÇÃO</option>
-            <option value="EM ESPERA">🩷 EM ESPERA</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Garantia <span class="req">*</span></label>
-          <div class="radio-group" style="padding-top: 10px;">
-            <label><input type="radio" name="garantia" value="Sim" required /> Sim</label>
-            <label><input type="radio" name="garantia" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="field full">
-          <label>Motivo do Chamado <span class="req">*</span></label>
-          <textarea name="motivo" placeholder="Descreva detalhadamente o problema..." required maxlength="5000"></textarea>
-        </div>
+      <div class="section-title">Demandas</div>
+      <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+        Marque tudo que se aplica ao serviço.
+      </p>
+      <div class="choice-grid">
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Elétrica" />
+          <span class="choice-card-icon">⚡</span>
+          <span>Elétrica</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Rede" />
+          <span class="choice-card-icon">🌐</span>
+          <span>Rede</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Alvenaria" />
+          <span class="choice-card-icon">🧱</span>
+          <span>Alvenaria</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Disjuntor" />
+          <span class="choice-card-icon">🔌</span>
+          <span>Disjuntor</span>
+        </label>
       </div>
     </div>
 
-    <!-- Anexos (opcional) -->
+    <!-- OBSERVAÇÕES -->
     <div class="section">
-      <div class="section-title">Anexos (opcional)</div>
+      <div class="section-title">Observações</div>
+      <div class="field full">
+        <label>Observações (opcional)</label>
+        <textarea name="observacoes" placeholder="Informações adicionais sobre o chamado..." maxlength="5000"></textarea>
+      </div>
+    </div>
+
+    <!-- Imagem do Projeto -->
+    <div class="section">
+      <div class="section-title">Imagem do Projeto (opcional)</div>
       <div class="anexos-uploader">
         <label class="upload-zone" for="anexos-input">
           <input type="file" id="anexos-input" name="anexos" multiple accept="image/*" hidden />
@@ -455,17 +509,8 @@
     const submitBtn = document.getElementById('submitBtn');
     const messageEl = document.getElementById('message');
 
-    // Uppercase estado automaticamente
-    document.querySelector('[name="estado"]').addEventListener('input', (e) => {
-      e.target.value = e.target.value.toUpperCase();
-    });
-
-    // Máscara CEP
-    document.getElementById('cep').addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 8);
-      if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5);
-      e.target.value = v;
-    });
+    // Pré-preenche a data do chamado com hoje
+    document.getElementById('dataChamado').value = new Date().toISOString().split('T')[0];
 
     // Anexos: render selected files + allow removal via DataTransfer.
     const anexosInput = document.getElementById('anexos-input');
@@ -514,7 +559,7 @@
       for (const el of form.elements) {
         if (!el.name || el.disabled) continue;
         if (el.type === 'file') continue; // tratado abaixo via anexosInput
-        if ((el.type === 'radio') && !el.checked) continue;
+        if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) continue;
         if (el.value !== '') fd.append(el.name, el.value);
       }
       for (const file of anexosInput.files) {
