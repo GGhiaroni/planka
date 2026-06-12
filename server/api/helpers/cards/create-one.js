@@ -3,6 +3,8 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
+const supabase = require('../../../utils/supabase');
+
 module.exports = {
   inputs: {
     values: {
@@ -87,6 +89,31 @@ module.exports = {
       listChangedAt: new Date().toISOString(),
     });
 
+    // Mirror to Supabase (best-effort — never blocks).
+    supabase
+      .upsertCard(card, {
+        projectName: inputs.project && inputs.project.name,
+        boardName: values.board && values.board.name,
+        listName: values.list && values.list.name,
+        listType: values.list && values.list.type,
+        labels: [],
+        customFields: {},
+      })
+      .catch(() => undefined);
+    supabase
+      .logEvent({
+        cardId: card.id,
+        eventType: 'create',
+        data: {
+          list_id: values.list && String(values.list.id),
+          list_name: values.list && values.list.name,
+          list_type: values.list && values.list.type,
+        },
+        userEmail: values.creatorUser && values.creatorUser.email,
+        userId: values.creatorUser && values.creatorUser.id,
+      })
+      .catch(() => undefined);
+
     sails.sockets.broadcast(
       `board:${card.boardId}`,
       'cardCreate',
@@ -163,6 +190,20 @@ module.exports = {
           request: inputs.request,
         });
       }
+    }
+
+    // If the card was created directly inside a `closed` list, stamp the
+    // "Chamado finalizado em" field right away.
+    if (values.list.type === List.Types.CLOSED) {
+      await sails.helpers.cards.syncFinalizedAt
+        .with({
+          card,
+          boardId: values.board.id,
+          fromType: null,
+          toType: values.list.type,
+          request: inputs.request,
+        })
+        .tolerate(() => undefined);
     }
 
     return card;

@@ -13,7 +13,25 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 const PLANKA_URL = required('PLANKA_URL').replace(/\/$/, '');
 const PLANKA_EMAIL = required('PLANKA_EMAIL');
 const PLANKA_PASSWORD = required('PLANKA_PASSWORD');
-const PLANKA_LIST_ID = required('PLANKA_LIST_ID');
+
+// Either provide the list IDs directly (legacy / strict) or the project +
+// board + list NAMES — the resolver will look them up via the API on demand.
+const PLANKA_LIST_ID = process.env.PLANKA_LIST_ID || null;
+const PLANKA_CHAMADOS_LIST_ID = process.env.PLANKA_CHAMADOS_LIST_ID || null;
+
+// Names used to discover IDs when not provided explicitly. Defaults match the
+// 02_default_boards seed (Design→Artes e Chamados Técnicos→Operacional em
+// 06/2026; o board do form Pedido de Venda segue chamado "Comercial").
+const PLANKA_PROJECT_NAME = process.env.PLANKA_PROJECT_NAME || 'PDView ERP';
+const PLANKA_DESIGN_BOARD_NAME = process.env.PLANKA_DESIGN_BOARD_NAME || 'Artes';
+const PLANKA_DESIGN_LIST_NAME = process.env.PLANKA_DESIGN_LIST_NAME || 'PEDIDO DE ARTE';
+const PLANKA_CHAMADOS_BOARD_NAME = process.env.PLANKA_CHAMADOS_BOARD_NAME || 'Operacional';
+const PLANKA_CHAMADOS_LIST_NAME = process.env.PLANKA_CHAMADOS_LIST_NAME || 'CHAMADOS';
+const PLANKA_COMERCIAL_BOARD_NAME = process.env.PLANKA_COMERCIAL_BOARD_NAME || 'Comercial';
+const PLANKA_COMERCIAL_LIST_NAME = process.env.PLANKA_COMERCIAL_LIST_NAME || 'PEDIDO DE VENDA';
+const PLANKA_ATENDIMENTO_BOARD_NAME =
+  process.env.PLANKA_ATENDIMENTO_BOARD_NAME || 'Atendimento';
+const PLANKA_ATENDIMENTO_LIST_NAME = process.env.PLANKA_ATENDIMENTO_LIST_NAME || 'CHAMADOS';
 
 const CONTACT_REASONS = (
   process.env.CONTACT_REASONS || 'Manutenção,Financeiro,Troca de Arte'
@@ -26,11 +44,9 @@ const CONTACT_REASONS = (
 // in the X-Webhook-Secret header or ?secret= query param.
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || null;
 
-// Board "Chamados Técnicos" — target list where new maintenance tickets land.
-const PLANKA_CHAMADOS_LIST_ID = process.env.PLANKA_CHAMADOS_LIST_ID || null;
-
 // Map priority name → label ID on the Chamados Técnicos board.
 // Env var format: "BAIXA PRIORIDADE:id,MÉDIA GRAVIDADE:id,..."
+// When left empty, planka.js resolves them by name from the board.
 const PRIORITY_LABELS = (process.env.PRIORITY_LABELS || '')
   .split(',')
   .map((s) => s.trim())
@@ -52,5 +68,14 @@ module.exports = {
   CONTACT_REASONS,
   WEBHOOK_SECRET,
   PLANKA_CHAMADOS_LIST_ID,
+  PLANKA_PROJECT_NAME,
+  PLANKA_DESIGN_BOARD_NAME,
+  PLANKA_DESIGN_LIST_NAME,
+  PLANKA_CHAMADOS_BOARD_NAME,
+  PLANKA_CHAMADOS_LIST_NAME,
+  PLANKA_COMERCIAL_BOARD_NAME,
+  PLANKA_COMERCIAL_LIST_NAME,
+  PLANKA_ATENDIMENTO_BOARD_NAME,
+  PLANKA_ATENDIMENTO_LIST_NAME,
   PRIORITY_LABELS,
 };

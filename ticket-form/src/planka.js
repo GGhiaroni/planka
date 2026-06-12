@@ -1,6 +1,21 @@
 'use strict';
 
-const { PLANKA_URL, PLANKA_EMAIL, PLANKA_PASSWORD, PLANKA_LIST_ID } = require('./config');
+const config = require('./config');
+
+const {
+  PLANKA_URL,
+  PLANKA_EMAIL,
+  PLANKA_PASSWORD,
+  PLANKA_PROJECT_NAME,
+  PLANKA_DESIGN_BOARD_NAME,
+  PLANKA_DESIGN_LIST_NAME,
+  PLANKA_CHAMADOS_BOARD_NAME,
+  PLANKA_CHAMADOS_LIST_NAME,
+  PLANKA_COMERCIAL_BOARD_NAME,
+  PLANKA_COMERCIAL_LIST_NAME,
+  PLANKA_ATENDIMENTO_BOARD_NAME,
+  PLANKA_ATENDIMENTO_LIST_NAME,
+} = config;
 
 // Module-level token cache shared across all requests in this process.
 let tokenCache = { token: null, expiresAt: 0 };
@@ -40,6 +55,244 @@ async function getToken() {
   return token;
 }
 
+// In-memory cache of discovered IDs (project, boards, lists, labels).
+// First request resolves them via the API and they are reused afterwards.
+//
+// PLANKA_LIST_ID / PLANKA_CHAMADOS_LIST_ID (env) eram aceitos como atalho
+// pra evitar lookup por nome, mas em deploys antigos esses valores às
+// vezes ficam pinados em IDs que não existem mais (boards renomeados,
+// listas migradas). Em vez de confiar cego no env, agora a gente *valida*
+// o ID pinado na primeira chamada via /api/lists/{id}; se for 404, marca
+// como inválido e cai pro lookup por nome.
+const idCache = {
+  designListId: null,
+  chamadosListId: null,
+  priorityLabels: { ...config.PRIORITY_LABELS },
+  chamadosBoardId: null,
+  comercialBoardId: null,
+  comercialListId: null,
+  atendimentoBoardId: null,
+  atendimentoListId: null,
+  // boardId → { labelName → labelId } cached label lookups, populated
+  // lazily by getLabelIdOnBoard.
+  labelsByBoard: {},
+  // Estado de validação dos IDs vindos de env. null = ainda não tentei;
+  // true = id é valido (use-o); false = pinned veio podre, usa name lookup.
+  pinnedDesignListValid: null,
+  pinnedChamadosListValid: null,
+};
+
+// Confere via API se um list ID existe. Usado pra detectar pinned env IDs
+// stale (sobra de boards renomeados/deletados). Best-effort: erros de rede
+// retornam null (não consigo afirmar nem negar).
+async function isListIdValid(listId) {
+  try {
+    const token = await getToken();
+    const res = await fetch(`${PLANKA_URL}/api/lists/${listId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) {
+      tokenCache = { token: null, expiresAt: 0 };
+      return isListIdValid(listId);
+    }
+    return res.ok;
+  } catch {
+    return null;
+  }
+}
+
+async function apiGet(path) {
+  const token = await getToken();
+  const res = await fetch(`${PLANKA_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    tokenCache = { token: null, expiresAt: 0 };
+    return apiGet(path);
+  }
+  if (!res.ok) {
+    throw new Error(`GET ${path} failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+async function findProjectByName(name) {
+  const { items = [], included = {} } = await apiGet('/api/projects');
+  const project = items.find((p) => p.name === name);
+  return { project, boards: included.boards || [] };
+}
+
+async function findBoardId(projectName, boardName) {
+  const { project, boards } = await findProjectByName(projectName);
+  if (!project) return null;
+  const board = boards.find((b) => b.projectId === project.id && b.name === boardName);
+  return board ? board.id : null;
+}
+
+async function findListIdInBoard(boardId, listName) {
+  const { included = {} } = await apiGet(`/api/boards/${boardId}`);
+  const list = (included.lists || []).find((l) => l.name === listName && l.type === 'active');
+  return list ? list.id : null;
+}
+
+async function indexLabelsInBoard(boardId) {
+  const { included = {} } = await apiGet(`/api/boards/${boardId}`);
+  const map = {};
+  for (const label of included.labels || []) {
+    if (label.name) map[label.name] = label.id;
+  }
+  return map;
+}
+
+async function getDesignListId() {
+  if (idCache.designListId) return idCache.designListId;
+
+  // Tenta o pinned env ID antes do lookup por nome. Se for stale (404),
+  // cai pro fallback.
+  if (config.PLANKA_LIST_ID && idCache.pinnedDesignListValid === null) {
+    idCache.pinnedDesignListValid = await isListIdValid(config.PLANKA_LIST_ID);
+    if (idCache.pinnedDesignListValid === false) {
+      console.warn(
+        `[ticket-form] PLANKA_LIST_ID=${config.PLANKA_LIST_ID} aponta pra uma lista inexistente. Caindo pro lookup por nome (${PLANKA_DESIGN_BOARD_NAME} / ${PLANKA_DESIGN_LIST_NAME}).`,
+      );
+    }
+  }
+  if (config.PLANKA_LIST_ID && idCache.pinnedDesignListValid === true) {
+    idCache.designListId = config.PLANKA_LIST_ID;
+    return config.PLANKA_LIST_ID;
+  }
+
+  const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_DESIGN_BOARD_NAME);
+  if (!boardId) {
+    throw new Error(
+      `Could not find board "${PLANKA_DESIGN_BOARD_NAME}" inside project "${PLANKA_PROJECT_NAME}"`,
+    );
+  }
+  const listId = await findListIdInBoard(boardId, PLANKA_DESIGN_LIST_NAME);
+  if (!listId) {
+    throw new Error(
+      `Could not find list "${PLANKA_DESIGN_LIST_NAME}" on board "${PLANKA_DESIGN_BOARD_NAME}"`,
+    );
+  }
+  idCache.designListId = listId;
+  return listId;
+}
+
+async function getChamadosBoardId() {
+  if (idCache.chamadosBoardId) return idCache.chamadosBoardId;
+  const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_CHAMADOS_BOARD_NAME);
+  if (!boardId) {
+    throw new Error(
+      `Could not find board "${PLANKA_CHAMADOS_BOARD_NAME}" inside project "${PLANKA_PROJECT_NAME}"`,
+    );
+  }
+  idCache.chamadosBoardId = boardId;
+  return boardId;
+}
+
+async function getChamadosListId() {
+  if (idCache.chamadosListId) return idCache.chamadosListId;
+
+  // Pinned env ID — valida antes de usar, igual ao design.
+  if (config.PLANKA_CHAMADOS_LIST_ID && idCache.pinnedChamadosListValid === null) {
+    idCache.pinnedChamadosListValid = await isListIdValid(config.PLANKA_CHAMADOS_LIST_ID);
+    if (idCache.pinnedChamadosListValid === false) {
+      console.warn(
+        `[ticket-form] PLANKA_CHAMADOS_LIST_ID=${config.PLANKA_CHAMADOS_LIST_ID} aponta pra uma lista inexistente. Caindo pro lookup por nome (${PLANKA_CHAMADOS_BOARD_NAME} / ${PLANKA_CHAMADOS_LIST_NAME}).`,
+      );
+    }
+  }
+  if (config.PLANKA_CHAMADOS_LIST_ID && idCache.pinnedChamadosListValid === true) {
+    idCache.chamadosListId = config.PLANKA_CHAMADOS_LIST_ID;
+    return config.PLANKA_CHAMADOS_LIST_ID;
+  }
+
+  const boardId = await getChamadosBoardId();
+  const listId = await findListIdInBoard(boardId, PLANKA_CHAMADOS_LIST_NAME);
+  if (!listId) {
+    throw new Error(
+      `Could not find list "${PLANKA_CHAMADOS_LIST_NAME}" on board "${PLANKA_CHAMADOS_BOARD_NAME}"`,
+    );
+  }
+  idCache.chamadosListId = listId;
+  return listId;
+}
+
+async function getComercialBoardId() {
+  if (idCache.comercialBoardId) return idCache.comercialBoardId;
+  const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_COMERCIAL_BOARD_NAME);
+  if (!boardId) {
+    throw new Error(
+      `Could not find board "${PLANKA_COMERCIAL_BOARD_NAME}" inside project "${PLANKA_PROJECT_NAME}"`,
+    );
+  }
+  idCache.comercialBoardId = boardId;
+  return boardId;
+}
+
+async function getComercialListId() {
+  if (idCache.comercialListId) return idCache.comercialListId;
+  const boardId = await getComercialBoardId();
+  const listId = await findListIdInBoard(boardId, PLANKA_COMERCIAL_LIST_NAME);
+  if (!listId) {
+    throw new Error(
+      `Could not find list "${PLANKA_COMERCIAL_LIST_NAME}" on board "${PLANKA_COMERCIAL_BOARD_NAME}"`,
+    );
+  }
+  idCache.comercialListId = listId;
+  return listId;
+}
+
+async function getAtendimentoBoardId() {
+  if (idCache.atendimentoBoardId) return idCache.atendimentoBoardId;
+  const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_ATENDIMENTO_BOARD_NAME);
+  if (!boardId) {
+    throw new Error(
+      `Could not find board "${PLANKA_ATENDIMENTO_BOARD_NAME}" inside project "${PLANKA_PROJECT_NAME}"`,
+    );
+  }
+  idCache.atendimentoBoardId = boardId;
+  return boardId;
+}
+
+async function getAtendimentoListId() {
+  if (idCache.atendimentoListId) return idCache.atendimentoListId;
+  const boardId = await getAtendimentoBoardId();
+  const listId = await findListIdInBoard(boardId, PLANKA_ATENDIMENTO_LIST_NAME);
+  if (!listId) {
+    throw new Error(
+      `Could not find list "${PLANKA_ATENDIMENTO_LIST_NAME}" on board "${PLANKA_ATENDIMENTO_BOARD_NAME}"`,
+    );
+  }
+  idCache.atendimentoListId = listId;
+  return listId;
+}
+
+// Generic lookup: returns the labelId for a given (boardId, labelName), or
+// null if it doesn't exist on that board. Caches per-board to avoid hitting
+// the API on every form submission.
+async function getLabelIdOnBoard(boardId, labelName) {
+  if (!boardId || !labelName) return null;
+  if (!idCache.labelsByBoard[boardId]) {
+    idCache.labelsByBoard[boardId] = await indexLabelsInBoard(boardId);
+  }
+  return idCache.labelsByBoard[boardId][labelName] || null;
+}
+
+async function getPriorityLabelId(priorityName) {
+  if (idCache.priorityLabels[priorityName]) {
+    return idCache.priorityLabels[priorityName];
+  }
+  const boardId = await getChamadosBoardId();
+  const labels = await indexLabelsInBoard(boardId);
+  // Merge in any labels we hadn't cached yet (rather than replace, so admin
+  // overrides via PRIORITY_LABELS env var keep precedence).
+  for (const [name, id] of Object.entries(labels)) {
+    if (!idCache.priorityLabels[name]) idCache.priorityLabels[name] = id;
+  }
+  return idCache.priorityLabels[priorityName] || null;
+}
+
 async function createCardInList(listId, name, descricao) {
   const token = await getToken();
 
@@ -71,7 +324,62 @@ async function createCardInList(listId, name, descricao) {
 
 // Backward-compatible wrapper for the existing Pedido de Artes flow.
 async function createCard(name, descricao) {
-  return createCardInList(PLANKA_LIST_ID, name, descricao);
+  const listId = await getDesignListId();
+  return createCardInList(listId, name, descricao);
+}
+
+// Uploads a single file as a card attachment via Planka's
+// POST /api/cards/{id}/attachments endpoint (multipart/form-data).
+// Returns the attachment item on success, or null on failure (logged).
+// Best-effort batch upload. Receives multer files (req.files) and forwards
+// each to Planka's attachment API. Never throws — a failed image must not
+// break the form submit, so we just log and return the count of successes.
+async function uploadAttachmentsFromMulter(cardId, files) {
+  if (!cardId || !Array.isArray(files) || files.length === 0) return 0;
+  let success = 0;
+  for (const file of files) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const item = await uploadAttachment(
+        cardId,
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+      );
+      if (item) success += 1;
+    } catch (err) {
+      console.error(`[ticket-form] attachment upload threw for "${file.originalname}":`, err.message);
+    }
+  }
+  return success;
+}
+
+async function uploadAttachment(cardId, fileBuffer, filename, mimetype) {
+  const token = await getToken();
+
+  const fd = new FormData();
+  fd.append('type', 'file');
+  fd.append('name', filename);
+  fd.append('file', new Blob([fileBuffer], { type: mimetype || 'application/octet-stream' }), filename);
+
+  const res = await fetch(`${PLANKA_URL}/api/cards/${cardId}/attachments`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+
+  if (res.status === 401) {
+    tokenCache = { token: null, expiresAt: 0 };
+    return uploadAttachment(cardId, fileBuffer, filename, mimetype);
+  }
+
+  if (!res.ok) {
+    console.error(`[ticket-form] attachment upload failed (${res.status}) for "${filename}"`);
+    return null;
+  }
+
+  const json = await res.json();
+  return json.item || null;
 }
 
 async function attachLabel(cardId, labelId) {
@@ -165,9 +473,10 @@ async function createCardCustomFieldGroups(cardId, groups) {
 
 async function fetchBoardCards() {
   const token = await getToken();
+  const designListId = await getDesignListId();
 
   // 1. Get the list to find its boardId
-  const listRes = await fetch(`${PLANKA_URL}/api/lists/${PLANKA_LIST_ID}`, {
+  const listRes = await fetch(`${PLANKA_URL}/api/lists/${designListId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!listRes.ok) throw new Error(`Failed to fetch list: ${listRes.status}`);
@@ -219,5 +528,16 @@ module.exports = {
   createCardInList,
   createCardCustomFieldGroups,
   attachLabel,
+  uploadAttachment,
+  uploadAttachmentsFromMulter,
   fetchBoardCards,
+  getDesignListId,
+  getChamadosListId,
+  getChamadosBoardId,
+  getComercialBoardId,
+  getComercialListId,
+  getAtendimentoBoardId,
+  getAtendimentoListId,
+  getLabelIdOnBoard,
+  getPriorityLabelId,
 };

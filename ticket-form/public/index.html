@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal de Chamados</title>
+  <title>Central de Formulários</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -67,6 +67,7 @@
 
     .card-artes { border-top-color: #4f6bed; }
     .card-manutencao { border-top-color: #d32f2f; }
+    .card-comercial { border-top-color: #16a34a; }
 
     .card-icon {
       width: 72px;
@@ -87,6 +88,11 @@
     .card-manutencao .card-icon {
       background: #fef2f2;
       color: #d32f2f;
+    }
+
+    .card-comercial .card-icon {
+      background: #ecfdf5;
+      color: #16a34a;
     }
 
     .card h2 {
@@ -130,6 +136,14 @@
       background: #b71c1c;
     }
 
+    .card-comercial .card-button {
+      background: #16a34a;
+    }
+
+    .card-comercial:hover .card-button {
+      background: #15803d;
+    }
+
     .footer {
       margin-top: 64px;
       font-size: 0.78rem;
@@ -146,8 +160,8 @@
 
   <div class="container">
     <div class="header">
-      <h1>Portal de Chamados</h1>
-      <p>Escolha abaixo o tipo de chamado que deseja abrir</p>
+      <h1>Central de Formulários</h1>
+      <p>Escolha abaixo o tipo de formulário que deseja preencher</p>
     </div>
 
     <div class="cards">
@@ -166,9 +180,16 @@
         <div class="card-button">Abrir chamado técnico</div>
       </a>
 
+      <a href="/comercial.html" class="card card-comercial">
+        <div class="card-icon">💼</div>
+        <h2>Pedido de Venda</h2>
+        <p>Abrir um novo pedido de venda para Posto, Varejo ou Igreja.</p>
+        <div class="card-button">Abrir pedido de venda</div>
+      </a>
+
     </div>
 
-    <div class="footer">PDView · Portal interno de chamados</div>
+    <div class="footer">PDView · Central interna de formulários</div>
   </div>
 
 </body>

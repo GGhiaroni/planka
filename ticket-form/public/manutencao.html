@@ -95,6 +95,7 @@
 
     input[type="text"],
     input[type="tel"],
+    input[type="date"],
     select,
     textarea {
       padding: 9px 12px;
@@ -144,6 +145,55 @@
       width: 16px; height: 16px;
       accent-color: #d32f2f;
       cursor: pointer;
+    }
+
+    /* Choice cards (Tipo de Serviço, Demandas) */
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .choice-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 10px;
+      border: 2px solid #e2e6ee;
+      border-radius: 10px;
+      background: #fafbfd;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, transform .1s;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .choice-card:hover { border-color: #d32f2f; background: #fef2f2; transform: translateY(-1px); }
+    .choice-card:has(input:checked) { border-color: #d32f2f; background: #fef2f2; }
+    .choice-card input { position: absolute; opacity: 0; pointer-events: none; }
+    .choice-card-icon { font-size: 1.3rem; line-height: 1; }
+
+    /* Attachments uploader */
+    .anexos-uploader { display: flex; flex-direction: column; gap: 12px; }
+    .upload-zone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 10px;
+      background: #f8fafc; cursor: pointer; transition: border-color .15s, background .15s;
+      text-align: center;
+    }
+    .upload-zone:hover { border-color: #d32f2f; background: #fef2f2; }
+    .upload-icon { font-size: 1.5rem; }
+    .upload-text { font-size: 0.88rem; color: #555; }
+    .anexos-list { display: flex; flex-direction: column; gap: 6px; }
+    .anexos-list:empty { display: none; }
+    .anexos-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: #f1f5f9; border-radius: 6px; font-size: 0.85rem;
+    }
+    .anexos-item-info { display: flex; gap: 8px; align-items: center; overflow: hidden; min-width: 0; }
+    .anexos-item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .anexos-item-size { color: #888; font-size: 0.78rem; flex-shrink: 0; }
+    .anexos-item-remove {
+      background: transparent; border: none; cursor: pointer; color: #b91c1c;
+      font-size: 1.2rem; padding: 0 6px; line-height: 1;
     }
 
     /* Submit */
@@ -305,6 +355,53 @@
     }
 
     .btn-new:hover { background: #b71c1c; }
+
+    .btn-secondary-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: #888;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-secondary-link:hover { color: #555; }
+
+    /* Typeahead (autocomplete de cliente) */
+    .typeahead { position: relative; }
+    .typeahead-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #d32f2f;
+      border-radius: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 10;
+      display: none;
+    }
+    .typeahead-list.is-open { display: block; }
+    .typeahead-item {
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .typeahead-item:last-child { border-bottom: none; }
+    .typeahead-item:hover,
+    .typeahead-item.is-active { background: #fef2f2; }
+    .typeahead-item-name { font-weight: 600; color: #1a1a2e; }
+    .typeahead-item-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .typeahead-empty {
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: #888;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -317,90 +414,134 @@
 
   <form id="form">
 
-    <!-- IDENTIFICAÇÃO -->
+    <!-- CLIENTE E CONTATO -->
     <div class="section">
-      <div class="section-title">Identificação</div>
+      <div class="section-title">Cliente e Contato</div>
       <div class="grid-2">
-        <div class="field full">
-          <label>Cliente / Nome do Posto <span class="req">*</span></label>
-          <input type="text" name="cliente" required />
+        <div class="field full typeahead" id="cliente-typeahead">
+          <label>Cliente <span class="req">*</span></label>
+          <input type="text" name="cliente" id="cliente-input" placeholder="Ex: Posto Mineirão (comece a digitar para preencher dados salvos)" autocomplete="off" required />
+          <div class="typeahead-list" id="cliente-list" role="listbox"></div>
         </div>
         <div class="field">
-          <label>Rede</label>
-          <input type="text" name="rede" placeholder="Ex: ELLG, PostosRios" />
+          <label>Nome do Contato <span class="req">*</span></label>
+          <input type="text" name="nomeContato" required />
         </div>
         <div class="field">
-          <label>Bandeira ou Tipo <span class="req">*</span></label>
-          <select name="bandeira" required>
-            <option value="" disabled selected>Selecione...</option>
-            <option>Shell</option>
-            <option>Petrobras</option>
-            <option>Ipiranga</option>
-            <option>Ale</option>
-            <option>Petronas</option>
-            <option>Rodoil</option>
-            <option>Branca</option>
-            <option>BR</option>
-            <option>Loja</option>
-            <option>Outros</option>
-          </select>
+          <label>Telefone do Contato <span class="req">*</span></label>
+          <input type="tel" name="telefoneContato" placeholder="(11) 99999-9999" required />
         </div>
       </div>
     </div>
 
-    <!-- LOCALIZAÇÃO -->
+    <!-- VENDEDOR -->
     <div class="section">
-      <div class="section-title">Localização</div>
+      <div class="section-title">Vendedor</div>
+      <div class="field">
+        <label>Nome do Vendedor <span class="req">*</span></label>
+        <select name="vendedor" required>
+          <option value="" disabled selected>Selecione...</option>
+          <option>Marilyn</option>
+          <option>Priscila</option>
+          <option>Mary</option>
+          <option>Thiago</option>
+          <option>Eduardo</option>
+          <option>Mello</option>
+          <option>Márcio</option>
+          <option>Fabrício</option>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SERVIÇO -->
+    <div class="section">
+      <div class="section-title">Serviço</div>
       <div class="grid-2">
-        <div class="field full">
-          <label>Endereço (Rua, Nº, Bairro)</label>
-          <input type="text" name="endereco" placeholder="R. das Flores, 123 - Centro" />
+        <div class="field">
+          <label>Data do Chamado <span class="req">*</span></label>
+          <input type="date" name="dataChamado" id="dataChamado" required />
         </div>
-        <div class="grid-3 field full" style="display: grid; gap: 16px;">
-          <div class="field">
-            <label>Cidade <span class="req">*</span></label>
-            <input type="text" name="cidade" required />
+        <div class="field">
+          <label>Prazo de Execução <span class="req">*</span></label>
+          <input type="text" name="prazoExecucao" placeholder="Ex: 20 dias" required />
+        </div>
+        <div class="field full">
+          <label>Tipo de Serviço <span class="req">*</span></label>
+          <div class="choice-grid">
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Venda" required />
+              <span class="choice-card-icon">💰</span>
+              <span>Venda</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Locação" required />
+              <span class="choice-card-icon">📦</span>
+              <span>Locação</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="tipoServico" value="Assistência Técnica" required />
+              <span class="choice-card-icon">🔧</span>
+              <span>Assistência Técnica</span>
+            </label>
           </div>
-          <div class="field">
-            <label>Estado <span class="req">*</span></label>
-            <input type="text" name="estado" maxlength="2" placeholder="RJ" required
-              style="text-transform: uppercase;" />
-          </div>
-          <div class="field">
-            <label>CEP</label>
-            <input type="text" name="cep" id="cep" maxlength="9" placeholder="00000-000" />
-          </div>
+        </div>
+        <div class="field full">
+          <label>Endereço do Serviço <span class="req">*</span></label>
+          <input type="text" name="enderecoServico" placeholder="Rua, Nº, Bairro, Cidade - UF" required />
         </div>
       </div>
     </div>
 
-    <!-- CHAMADO -->
+    <!-- DEMANDAS -->
     <div class="section">
-      <div class="section-title">Chamado</div>
-      <div class="grid-2">
-        <div class="field">
-          <label>Prioridade <span class="req">*</span></label>
-          <select name="prioridade" required>
-            <option value="" disabled selected>Selecione...</option>
-            <option value="MÁXIMA PRIORIDADE">🟣 MÁXIMA PRIORIDADE</option>
-            <option value="URGÊNCIA">🔴 URGÊNCIA</option>
-            <option value="MÉDIA GRAVIDADE">🟡 MÉDIA GRAVIDADE</option>
-            <option value="BAIXA PRIORIDADE">🟢 BAIXA PRIORIDADE</option>
-            <option value="PENDÊNCIAS DE INSTALAÇÃO">🟠 PENDÊNCIAS DE INSTALAÇÃO</option>
-            <option value="EM ESPERA">🩷 EM ESPERA</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Garantia <span class="req">*</span></label>
-          <div class="radio-group" style="padding-top: 10px;">
-            <label><input type="radio" name="garantia" value="Sim" required /> Sim</label>
-            <label><input type="radio" name="garantia" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="field full">
-          <label>Motivo do Chamado <span class="req">*</span></label>
-          <textarea name="motivo" placeholder="Descreva detalhadamente o problema..." required maxlength="5000"></textarea>
-        </div>
+      <div class="section-title">Demandas</div>
+      <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+        Marque tudo que se aplica ao serviço.
+      </p>
+      <div class="choice-grid">
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Elétrica" />
+          <span class="choice-card-icon">⚡</span>
+          <span>Elétrica</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Rede" />
+          <span class="choice-card-icon">🌐</span>
+          <span>Rede</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Alvenaria" />
+          <span class="choice-card-icon">🧱</span>
+          <span>Alvenaria</span>
+        </label>
+        <label class="choice-card">
+          <input type="checkbox" name="demandas" value="Disjuntor" />
+          <span class="choice-card-icon">🔌</span>
+          <span>Disjuntor</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- OBSERVAÇÕES -->
+    <div class="section">
+      <div class="section-title">Observações</div>
+      <div class="field full">
+        <label>Observações (opcional)</label>
+        <textarea name="observacoes" placeholder="Informações adicionais sobre o chamado..." maxlength="5000"></textarea>
+      </div>
+    </div>
+
+    <!-- Imagem do Projeto -->
+    <div class="section">
+      <div class="section-title">Imagem do Projeto (opcional)</div>
+      <div class="anexos-uploader">
+        <label class="upload-zone" for="anexos-input">
+          <input type="file" id="anexos-input" name="anexos" multiple accept="image/*" hidden />
+          <span class="upload-icon">📎</span>
+          <span class="upload-text">Clique para adicionar imagens (até 10, máx. 10MB cada)</span>
+        </label>
+        <div class="anexos-list" id="anexos-list"></div>
       </div>
     </div>
 
@@ -417,27 +558,176 @@
     const submitBtn = document.getElementById('submitBtn');
     const messageEl = document.getElementById('message');
 
-    // Uppercase estado automaticamente
-    document.querySelector('[name="estado"]').addEventListener('input', (e) => {
-      e.target.value = e.target.value.toUpperCase();
+    // Pré-preenche a data do chamado com hoje
+    document.getElementById('dataChamado').value = new Date().toISOString().split('T')[0];
+
+    // Autocomplete de cliente: ao digitar, busca clientes cadastrados via
+    // form de Pedido de Venda e preenche os outros campos quando o usuário
+    // escolhe uma sugestão. Tudo continua editável depois.
+    setupClienteTypeahead({
+      inputId: 'cliente-input',
+      listId: 'cliente-list',
+      onSelect: (c) => {
+        // Nome do contato e telefone vêm do "responsavel/telefone" salvo.
+        if (c.responsavel) document.querySelector('[name="nomeContato"]').value = c.responsavel;
+        if (c.telefone) document.querySelector('[name="telefoneContato"]').value = c.telefone;
+        // Endereço fica como cidade/UF (não temos endereço completo no cadastro).
+        const enderecoEl = document.querySelector('[name="enderecoServico"]');
+        if (enderecoEl && !enderecoEl.value && (c.cidade || c.estado)) {
+          enderecoEl.value = [c.cidade, c.estado].filter(Boolean).join(' / ');
+        }
+      },
     });
 
-    // Máscara CEP
-    document.getElementById('cep').addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 8);
-      if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5);
-      e.target.value = v;
-    });
+    function setupClienteTypeahead({ inputId, listId, onSelect }) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      let debounceTimer = null;
+      let activeIndex = -1;
+      let items = [];
+
+      function close() {
+        list.classList.remove('is-open');
+        activeIndex = -1;
+      }
+      function render(results) {
+        items = results;
+        list.innerHTML = '';
+        if (results.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'typeahead-empty';
+          empty.textContent = 'Nenhum cliente encontrado.';
+          list.appendChild(empty);
+          list.classList.add('is-open');
+          return;
+        }
+        results.forEach((c, idx) => {
+          const item = document.createElement('div');
+          item.className = 'typeahead-item';
+          item.setAttribute('role', 'option');
+          const meta = [c.tipo, [c.cidade, c.estado].filter(Boolean).join('/')]
+            .filter(Boolean)
+            .join(' · ');
+          const nameEl = document.createElement('div');
+          nameEl.className = 'typeahead-item-name';
+          nameEl.textContent = c.name;
+          item.appendChild(nameEl);
+          if (meta) {
+            const metaEl = document.createElement('div');
+            metaEl.className = 'typeahead-item-meta';
+            metaEl.textContent = meta;
+            item.appendChild(metaEl);
+          }
+          item.addEventListener('mousedown', (e) => {
+            // mousedown (não click) porque blur do input dispara antes do click.
+            e.preventDefault();
+            select(idx);
+          });
+          list.appendChild(item);
+        });
+        list.classList.add('is-open');
+      }
+      function select(idx) {
+        const c = items[idx];
+        if (!c) return;
+        input.value = c.name;
+        onSelect(c);
+        close();
+      }
+      function highlight(idx) {
+        const els = list.querySelectorAll('.typeahead-item');
+        els.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+      }
+      async function fetchAndRender() {
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        try {
+          const res = await fetch('/api/clientes/search?q=' + encodeURIComponent(q));
+          const body = await res.json();
+          render(body.items || []);
+        } catch {
+          close();
+        }
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchAndRender, 200);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (!list.classList.contains('is-open')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          highlight(activeIndex);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          highlight(activeIndex);
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+          e.preventDefault();
+          select(activeIndex);
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      input.addEventListener('blur', () => {
+        // Pequeno delay pra deixar o mousedown rodar primeiro.
+        setTimeout(close, 120);
+      });
+    }
+
+    // Anexos: render selected files + allow removal via DataTransfer.
+    const anexosInput = document.getElementById('anexos-input');
+    const anexosList = document.getElementById('anexos-list');
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function renderAnexos() {
+      anexosList.innerHTML = '';
+      Array.from(anexosInput.files).forEach((file, idx) => {
+        const item = document.createElement('div');
+        item.className = 'anexos-item';
+        const info = document.createElement('div');
+        info.className = 'anexos-item-info';
+        info.innerHTML = '<span>📎</span><span class="anexos-item-name"></span><span class="anexos-item-size"></span>';
+        info.querySelector('.anexos-item-name').textContent = file.name;
+        info.querySelector('.anexos-item-size').textContent = formatSize(file.size);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'anexos-item-remove';
+        btn.setAttribute('aria-label', 'Remover');
+        btn.textContent = '×';
+        btn.addEventListener('click', () => removeAnexo(idx));
+        item.appendChild(info);
+        item.appendChild(btn);
+        anexosList.appendChild(item);
+      });
+    }
+    function removeAnexo(index) {
+      const dt = new DataTransfer();
+      Array.from(anexosInput.files).forEach((f, i) => {
+        if (i !== index) dt.items.add(f);
+      });
+      anexosInput.files = dt.files;
+      renderAnexos();
+    }
+    anexosInput.addEventListener('change', renderAnexos);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearMessage();
 
-      const data = {};
+      const fd = new FormData();
       for (const el of form.elements) {
         if (!el.name || el.disabled) continue;
-        if ((el.type === 'radio') && !el.checked) continue;
-        if (el.value !== '') data[el.name] = el.value;
+        if (el.type === 'file') continue; // tratado abaixo via anexosInput
+        if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) continue;
+        if (el.value !== '') fd.append(el.name, el.value);
+      }
+      for (const file of anexosInput.files) {
+        fd.append('anexos', file);
       }
 
       submitBtn.disabled = true;
@@ -446,8 +736,7 @@
       try {
         const res = await fetch('/api/manutencao', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: fd,
         });
         const body = await res.json();
 
@@ -473,7 +762,8 @@
           <p>Sua ordem de serviço foi registrada:</p>
           <div class="os-badge">OS Nº ${os}</div>
           <p style="margin-bottom: 28px;">A equipe técnica foi notificada e entrará em contato em breve.</p>
-          <button class="btn-new" onclick="location.reload()">Abrir outro chamado</button>
+          <a class="btn-new" href="/">Voltar para a Central de Formulários</a>
+          <div><button class="btn-secondary-link" onclick="location.reload()">ou abrir outro chamado</button></div>
         </div>
       `;
       document.body.appendChild(overlay);

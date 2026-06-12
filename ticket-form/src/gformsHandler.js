@@ -1,6 +1,7 @@
 'use strict';
 
-const { createCard, createCardCustomFieldGroups } = require('./planka');
+const { createCard, createCardCustomFieldGroups, uploadAttachmentsFromMulter } = require('./planka');
+const supabase = require('./supabase');
 const { WEBHOOK_SECRET } = require('./config');
 
 // Maps the raw Google Form field titles to what we display in the card description.
@@ -24,17 +25,6 @@ const FIELD_SECTIONS = [
       'MEDIDA DO LED',
       'TIPO LED',
       'TIPO DE NEGOCIAÇÃO',
-    ],
-  },
-  {
-    title: 'Serviços do Posto',
-    fields: [
-      'TEM LOJA CONVENIÊNCIA',
-      'TROCA DE ÓLEO',
-      'TEM LAVA JATO',
-      'TEM GELO FILTRADO',
-      'TEM PADARIA',
-      'TEM CARVÃO',
     ],
   },
   {
@@ -123,17 +113,6 @@ function buildCustomFieldGroups(data, openedAt) {
       ],
     },
     {
-      name: 'Serviços do Posto',
-      fields: [
-        { name: 'Loja Conveniência', value: get('TEM LOJA CONVENIÊNCIA') },
-        { name: 'Troca de Óleo', value: get('TROCA DE ÓLEO') },
-        { name: 'Lava Jato', value: get('TEM LAVA JATO') },
-        { name: 'Gelo Filtrado', value: get('TEM GELO FILTRADO') },
-        { name: 'Padaria', value: get('TEM PADARIA') },
-        { name: 'Carvão', value: get('TEM CARVÃO') },
-      ],
-    },
-    {
       name: 'Preços dos Combustíveis',
       fields: [
         { name: 'Gasolina Comum', value: get('PREÇO GASOLINA COMUM') },
@@ -197,9 +176,54 @@ async function gformsHandler(req, res) {
     const { item: card } = await createCard(cardName, '');
     const groups = buildCustomFieldGroups(data, timestamp);
     await createCardCustomFieldGroups(card.id, groups);
+
+    // Upload any optional image attachments (best-effort, never blocks).
+    const uploadedCount = await uploadAttachmentsFromMulter(card.id, req.files);
+
+    // Mirror to Supabase (best-effort — never blocks the form response).
+    Promise.all([
+      supabase.logFormSubmission({
+        formType: 'design',
+        payload: data,
+        plankaCardId: card.id,
+        status: 'created',
+      }),
+      supabase.upsertCard({
+        planka_id: String(card.id),
+        board_id: card.boardId ? String(card.boardId) : null,
+        list_id: card.listId ? String(card.listId) : null,
+        project_name: 'PDView ERP',
+        board_name: 'Artes',
+        list_name: 'Demanda',
+        name: cardName,
+        description: card.description || null,
+        labels: [],
+        custom_fields: groups.reduce((acc, g) => {
+          acc[g.name] = g.fields.reduce((m, f) => {
+            m[f.name] = f.value;
+            return m;
+          }, {});
+          return acc;
+        }, {}),
+      }),
+      supabase.logCardEvent({
+        plankaCardId: card.id,
+        eventType: 'form_submit_design',
+        data: { source: 'ticket-form', opened_at: timestamp, attachments: uploadedCount },
+      }),
+    ]).catch(() => undefined);
+
     return res.json({ ok: true });
   } catch (err) {
     console.error('[ticket-form] gforms card creation failed:', err.message);
+    supabase
+      .logFormSubmission({
+        formType: 'design',
+        payload: data,
+        status: 'failed',
+        errorMessage: err.message,
+      })
+      .catch(() => undefined);
     return res.status(502).json({ error: 'Failed to create card' });
   }
 }

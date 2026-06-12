@@ -75,6 +75,16 @@
       gap: 16px;
     }
 
+    /* Bandeira (mais larga) | Cidade (mais larga) | Estado (estreito, só UF) */
+    .grid-bandeira {
+      display: grid;
+      grid-template-columns: 1.4fr 1.4fr 0.6fr;
+      gap: 16px;
+    }
+    @media (max-width: 560px) {
+      .grid-bandeira { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 560px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .section { padding: 20px 18px; }
@@ -94,6 +104,7 @@
     label .req { color: #e53e3e; margin-left: 2px; }
 
     input[type="text"],
+    input[type="tel"],
     input[type="date"],
     select,
     textarea {
@@ -107,6 +118,12 @@
       transition: border-color 0.15s;
       outline: none;
       width: 100%;
+      height: 40px;
+      line-height: 1.2;
+    }
+
+    textarea {
+      height: auto;
     }
 
     input:focus, select:focus, textarea:focus {
@@ -141,25 +158,96 @@
       cursor: pointer;
     }
 
-    /* Serviços grid */
-    .services-grid {
+    /* Combustíveis: cada linha = checkbox (se vende esse) + input do preço */
+    .fuels-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 12px 24px;
     }
 
     @media (max-width: 560px) {
-      .services-grid { grid-template-columns: 1fr 1fr; }
+      .fuels-grid { grid-template-columns: 1fr; }
     }
 
-    .service-item { display: flex; flex-direction: column; gap: 4px; }
+    .fuel-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1.5px solid #e2e6ee;
+      border-radius: 8px;
+      background: #fafbfd;
+      transition: border-color 0.15s, background 0.15s;
+    }
 
-    .service-item span {
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      color: #444;
+    .fuel-item.is-active {
+      border-color: #4f6bed;
+      background: #eef2ff;
+    }
+
+    .fuel-item .fuel-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      flex: 0 0 auto;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #333;
+      text-transform: none;
+      letter-spacing: 0;
+      min-width: 130px;
+    }
+
+    .fuel-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #4f6bed;
+      cursor: pointer;
+    }
+
+    .fuel-item input[type="text"] {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 0.92rem;
+    }
+
+    .fuel-item input[type="text"]:disabled {
+      background: #f1f3f7;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* Telefone: ocupa a célula inteira do grid (igual aos outros inputs)
+       e usa números tabulares pra a máscara ficar mais legível. */
+    .phone-input {
+      letter-spacing: 0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Attachments uploader */
+    .anexos-uploader { display: flex; flex-direction: column; gap: 12px; }
+    .upload-zone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 10px;
+      background: #f8fafc; cursor: pointer; transition: border-color .15s, background .15s;
+      text-align: center;
+    }
+    .upload-zone:hover { border-color: #4f6bed; background: #eef0fb; }
+    .upload-icon { font-size: 1.5rem; }
+    .upload-text { font-size: 0.88rem; color: #555; }
+    .anexos-list { display: flex; flex-direction: column; gap: 6px; }
+    .anexos-list:empty { display: none; }
+    .anexos-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: #f1f5f9; border-radius: 6px; font-size: 0.85rem;
+    }
+    .anexos-item-info { display: flex; gap: 8px; align-items: center; overflow: hidden; min-width: 0; }
+    .anexos-item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .anexos-item-size { color: #888; font-size: 0.78rem; flex-shrink: 0; }
+    .anexos-item-remove {
+      background: transparent; border: none; cursor: pointer; color: #b91c1c;
+      font-size: 1.2rem; padding: 0 6px; line-height: 1;
     }
 
     /* Submit area */
@@ -332,6 +420,53 @@
     }
 
     .btn-new:hover { background: #3a56d4; }
+
+    .btn-secondary-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: #888;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-secondary-link:hover { color: #555; }
+
+    /* Typeahead (autocomplete de cliente) */
+    .typeahead { position: relative; }
+    .typeahead-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #4f6bed;
+      border-radius: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 10;
+      display: none;
+    }
+    .typeahead-list.is-open { display: block; }
+    .typeahead-item {
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .typeahead-item:last-child { border-bottom: none; }
+    .typeahead-item:hover,
+    .typeahead-item.is-active { background: #eef0fb; }
+    .typeahead-item-name { font-weight: 600; color: #1a1a2e; }
+    .typeahead-item-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .typeahead-empty {
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: #888;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -347,11 +482,15 @@
     <!-- IDENTIFICAÇÃO -->
     <div class="section">
       <div class="section-title">Identificação do Posto</div>
-      <div class="grid-2">
-        <div class="field full">
-          <label>Nome do Posto <span class="req">*</span></label>
-          <input type="text" name="NOME DO POSTO" required />
-        </div>
+
+      <div class="field typeahead" id="cliente-typeahead" style="margin-bottom: 16px;">
+        <label>Nome do Posto <span class="req">*</span></label>
+        <input type="text" name="NOME DO POSTO" id="cliente-input" placeholder="Comece a digitar para usar dados salvos" autocomplete="off" required />
+        <div class="typeahead-list" id="cliente-list" role="listbox"></div>
+      </div>
+
+      <!-- Bandeira / Cidade / Estado em 3 colunas (Estado é só UF) -->
+      <div class="grid-bandeira" style="margin-bottom: 16px;">
         <div class="field">
           <label>Bandeira <span class="req">*</span></label>
           <select name="BANDEIRA" required>
@@ -371,15 +510,26 @@
         </div>
         <div class="field">
           <label>Estado <span class="req">*</span></label>
-          <input type="text" name="ESTADO" placeholder="Ex: SP" required />
+          <input type="text" name="ESTADO" placeholder="Ex: SP" maxlength="2" required />
         </div>
+      </div>
+
+      <!-- Nome do Responsável e Telefone lado a lado -->
+      <div class="grid-2">
         <div class="field">
           <label>Nome do Responsável</label>
           <input type="text" name="NOME RESPONSÁVEL" />
         </div>
         <div class="field">
           <label>Telefone do Responsável</label>
-          <input type="tel" name="TLEFONE RESPONSÁVEL" id="telefone" placeholder="(00) 00000-0000" maxlength="15" />
+          <input
+            type="tel"
+            name="TLEFONE RESPONSÁVEL"
+            id="telefone"
+            class="phone-input"
+            placeholder="(00) 00000-0000"
+            maxlength="15"
+          />
         </div>
       </div>
     </div>
@@ -420,56 +570,8 @@
             <option value="" disabled selected>Selecione...</option>
             <option>VENDA</option>
             <option>LOCAÇÃO</option>
+            <option>DEGUSTAÇÃO</option>
           </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- SERVIÇOS -->
-    <div class="section">
-      <div class="section-title">Serviços do Posto</div>
-      <div class="services-grid">
-        <div class="service-item">
-          <span>Loja Conveniência</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TEM LOJA CONVENIÊNCIA" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TEM LOJA CONVENIÊNCIA" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="service-item">
-          <span>Troca de Óleo</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TROCA DE ÓLEO" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TROCA DE ÓLEO" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="service-item">
-          <span>Lava Jato</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TEM LAVA JATO" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TEM LAVA JATO" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="service-item">
-          <span>Gelo Filtrado</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TEM GELO FILTRADO" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TEM GELO FILTRADO" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="service-item">
-          <span>Padaria</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TEM PADARIA" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TEM PADARIA" value="Não" /> Não</label>
-          </div>
-        </div>
-        <div class="service-item">
-          <span>Carvão</span>
-          <div class="radio-group">
-            <label><input type="radio" name="TEM CARVÃO" value="Sim" /> Sim</label>
-            <label><input type="radio" name="TEM CARVÃO" value="Não" /> Não</label>
-          </div>
         </div>
       </div>
     </div>
@@ -477,39 +579,11 @@
     <!-- COMBUSTÍVEIS -->
     <div class="section">
       <div class="section-title">Preços dos Combustíveis</div>
-      <div class="grid-3">
-        <div class="field">
-          <label>Gasolina Comum</label>
-          <input type="text" name="PREÇO GASOLINA COMUM" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>Gasolina Aditivada</label>
-          <input type="text" name="PREÇO GASOLINA ADITIVADA" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>Gasolina Pódium</label>
-          <input type="text" name="GASOINA PODIUM" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>Etanol</label>
-          <input type="text" name="PREÇO ETANOL" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>Diesel</label>
-          <input type="text" name="PREÇO DIESEL" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>Diesel S10</label>
-          <input type="text" name="PREÇO DIESEL S 10" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>ARLA</label>
-          <input type="text" name="ARLA" placeholder="R$ 0,00" />
-        </div>
-        <div class="field">
-          <label>GNV</label>
-          <input type="text" name="PREÇO GNV" placeholder="R$ 0,00" />
-        </div>
+      <p style="font-size: 0.85rem; color: #666; margin-bottom: 14px;">
+        Marque apenas os combustíveis que o posto vende e informe o preço de cada um.
+      </p>
+      <div class="fuels-grid" id="fuelsGrid">
+        <!-- gerado dinamicamente pelo JS abaixo -->
       </div>
     </div>
 
@@ -554,6 +628,19 @@
       </div>
     </div>
 
+    <!-- Anexos (opcional) -->
+    <div class="section">
+      <div class="section-title">Anexos (opcional)</div>
+      <div class="anexos-uploader">
+        <label class="upload-zone" for="anexos-input">
+          <input type="file" id="anexos-input" name="anexos" multiple accept="image/*" hidden />
+          <span class="upload-icon">📎</span>
+          <span class="upload-text">Clique para adicionar imagens (até 10, máx. 10MB cada)</span>
+        </label>
+        <div class="anexos-list" id="anexos-list"></div>
+      </div>
+    </div>
+
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="submit" id="submitBtn">Enviar Pedido</button>
@@ -563,25 +650,238 @@
   </form>
 
   <script>
+    // Lista de combustíveis: { name: nome do field do form, label: rótulo na UI }
+    const FUELS = [
+      { name: 'PREÇO GASOLINA COMUM',     label: 'Gasolina Comum' },
+      { name: 'PREÇO GASOLINA ADITIVADA', label: 'Gasolina Aditivada' },
+      { name: 'GASOINA PODIUM',           label: 'Gasolina Pódium' },
+      { name: 'PREÇO ETANOL',             label: 'Etanol' },
+      { name: 'PREÇO DIESEL',             label: 'Diesel' },
+      { name: 'PREÇO DIESEL S 10',        label: 'Diesel S10' },
+      { name: 'ARLA',                     label: 'ARLA' },
+      { name: 'PREÇO GNV',                label: 'GNV' },
+    ];
+
+    // Renderiza dinamicamente os pares checkbox + input.
+    const fuelsGrid = document.getElementById('fuelsGrid');
+    for (const f of FUELS) {
+      const item = document.createElement('div');
+      item.className = 'fuel-item';
+      item.innerHTML = `
+        <label class="fuel-label">
+          <input type="checkbox" data-fuel="${f.name}" />
+          ${f.label}
+        </label>
+        <input type="text" name="${f.name}" placeholder="R$ 0,00" disabled />
+      `;
+      fuelsGrid.appendChild(item);
+
+      const checkbox = item.querySelector('input[type="checkbox"]');
+      const priceInput = item.querySelector('input[type="text"]');
+
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          priceInput.disabled = false;
+          item.classList.add('is-active');
+          priceInput.focus();
+        } else {
+          priceInput.disabled = true;
+          priceInput.value = '';
+          item.classList.remove('is-active');
+        }
+      });
+    }
+
     // Pre-fill today's date
     const today = new Date().toISOString().split('T')[0];
     document.querySelector('[name="DATA"]').value = today;
+
+    // Autocomplete de cliente: ao digitar o nome do posto, busca registros
+    // cadastrados via form de Pedido de Venda e preenche o resto dos campos
+    // (Bandeira, Cidade, UF, Responsável, Telefone) — todos editáveis.
+    setupClienteTypeahead({
+      inputId: 'cliente-input',
+      listId: 'cliente-list',
+      onSelect: (c) => {
+        const setIfEmpty = (selector, value) => {
+          if (!value) return;
+          const el = document.querySelector(selector);
+          if (el && !el.value) el.value = value;
+        };
+        // Bandeira do Posto — select com options em uppercase.
+        if (c.tipo === 'Posto' && c.bandeira) {
+          const bandeiraEl = document.querySelector('[name="BANDEIRA"]');
+          if (bandeiraEl && !bandeiraEl.value) {
+            const wanted = String(c.bandeira).toUpperCase().trim();
+            const match = Array.from(bandeiraEl.options).find(
+              (o) => o.value.toUpperCase() === wanted,
+            );
+            if (match) bandeiraEl.value = match.value;
+          }
+        }
+        setIfEmpty('[name="CIDADE"]', c.cidade);
+        if (c.estado) {
+          const ufEl = document.querySelector('[name="ESTADO"]');
+          if (ufEl && !ufEl.value) ufEl.value = String(c.estado).toUpperCase().slice(0, 2);
+        }
+        setIfEmpty('[name="NOME RESPONSÁVEL"]', c.responsavel);
+        setIfEmpty('[name="TLEFONE RESPONSÁVEL"]', c.telefone);
+      },
+    });
+
+    function setupClienteTypeahead({ inputId, listId, onSelect }) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      let debounceTimer = null;
+      let activeIndex = -1;
+      let items = [];
+
+      function close() {
+        list.classList.remove('is-open');
+        activeIndex = -1;
+      }
+      function render(results) {
+        items = results;
+        list.innerHTML = '';
+        if (results.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'typeahead-empty';
+          empty.textContent = 'Nenhum cliente encontrado.';
+          list.appendChild(empty);
+          list.classList.add('is-open');
+          return;
+        }
+        results.forEach((c, idx) => {
+          const item = document.createElement('div');
+          item.className = 'typeahead-item';
+          item.setAttribute('role', 'option');
+          const meta = [c.tipo, [c.cidade, c.estado].filter(Boolean).join('/')]
+            .filter(Boolean)
+            .join(' · ');
+          const nameEl = document.createElement('div');
+          nameEl.className = 'typeahead-item-name';
+          nameEl.textContent = c.name;
+          item.appendChild(nameEl);
+          if (meta) {
+            const metaEl = document.createElement('div');
+            metaEl.className = 'typeahead-item-meta';
+            metaEl.textContent = meta;
+            item.appendChild(metaEl);
+          }
+          item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            select(idx);
+          });
+          list.appendChild(item);
+        });
+        list.classList.add('is-open');
+      }
+      function select(idx) {
+        const c = items[idx];
+        if (!c) return;
+        input.value = c.name;
+        onSelect(c);
+        close();
+      }
+      function highlight(idx) {
+        const els = list.querySelectorAll('.typeahead-item');
+        els.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+      }
+      async function fetchAndRender() {
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        try {
+          const res = await fetch('/api/clientes/search?q=' + encodeURIComponent(q));
+          const body = await res.json();
+          render(body.items || []);
+        } catch {
+          close();
+        }
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchAndRender, 200);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (!list.classList.contains('is-open')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          highlight(activeIndex);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          highlight(activeIndex);
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+          e.preventDefault();
+          select(activeIndex);
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(close, 120);
+      });
+    }
 
     const form = document.getElementById('form');
     const submitBtn = document.getElementById('submitBtn');
     const messageEl = document.getElementById('message');
 
+    // Anexos: render selected files + allow removal via DataTransfer.
+    const anexosInput = document.getElementById('anexos-input');
+    const anexosList = document.getElementById('anexos-list');
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function renderAnexos() {
+      anexosList.innerHTML = '';
+      Array.from(anexosInput.files).forEach((file, idx) => {
+        const item = document.createElement('div');
+        item.className = 'anexos-item';
+        const info = document.createElement('div');
+        info.className = 'anexos-item-info';
+        info.innerHTML = '<span>📎</span><span class="anexos-item-name"></span><span class="anexos-item-size"></span>';
+        info.querySelector('.anexos-item-name').textContent = file.name;
+        info.querySelector('.anexos-item-size').textContent = formatSize(file.size);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'anexos-item-remove';
+        btn.setAttribute('aria-label', 'Remover');
+        btn.textContent = '×';
+        btn.addEventListener('click', () => removeAnexo(idx));
+        item.appendChild(info);
+        item.appendChild(btn);
+        anexosList.appendChild(item);
+      });
+    }
+    function removeAnexo(index) {
+      const dt = new DataTransfer();
+      Array.from(anexosInput.files).forEach((f, i) => {
+        if (i !== index) dt.items.add(f);
+      });
+      anexosInput.files = dt.files;
+      renderAnexos();
+    }
+    anexosInput.addEventListener('change', renderAnexos);
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearMessage();
 
-      const data = {};
+      const fd = new FormData();
       const elements = form.elements;
 
       for (const el of elements) {
         if (!el.name || el.disabled) continue;
+        if (el.type === 'file') continue; // tratado abaixo via anexosInput
         if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) continue;
-        if (el.value !== '') data[el.name] = el.value;
+        if (el.value !== '') fd.append(el.name, el.value);
+      }
+      for (const file of anexosInput.files) {
+        fd.append('anexos', file);
       }
 
       submitBtn.disabled = true;
@@ -590,8 +890,7 @@
       try {
         const res = await fetch('/api/gforms', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: fd,
         });
 
         const body = await res.json();
@@ -616,7 +915,8 @@
           </div>
           <h2>Pedido enviado!</h2>
           <p>O card foi criado no board e o time de artes já pode visualizar a demanda.</p>
-          <button class="btn-new" onclick="location.reload()">Enviar outro pedido</button>
+          <a class="btn-new" href="/">Voltar para a Central de Formulários</a>
+          <div><button class="btn-secondary-link" onclick="location.reload()">ou enviar outro pedido de arte</button></div>
         </div>
       `;
       document.body.appendChild(overlay);
