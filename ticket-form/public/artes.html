@@ -421,6 +421,18 @@
 
     .btn-new:hover { background: #3a56d4; }
 
+    .btn-secondary-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: #888;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-secondary-link:hover { color: #555; }
+
     /* Typeahead (autocomplete de cliente) */
     .typeahead { position: relative; }
     .typeahead-list {
@@ -903,7 +915,8 @@
           </div>
           <h2>Pedido enviado!</h2>
           <p>O card foi criado no board e o time de artes já pode visualizar a demanda.</p>
-          <button class="btn-new" onclick="location.reload()">Enviar outro pedido</button>
+          <a class="btn-new" href="/">Voltar para a Central de Formulários</a>
+          <div><button class="btn-secondary-link" onclick="location.reload()">ou enviar outro pedido de arte</button></div>
         </div>
       `;
       document.body.appendChild(overlay);
