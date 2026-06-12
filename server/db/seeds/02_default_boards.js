@@ -6,7 +6,7 @@
  *   - Operacional    — table  — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
  *                             — labels: ASSISTÊNCIA TÉCNICA, INSTALAÇÃO
  *                                       (+ 8 legacy priority labels kept)
- *   - Pedido de Venda — table — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
+ *   - Comercial      — table — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
  *                                     OS CHAMADO (intake/triage board)
  *   - Atendimento    — kanban — lists: AGENDAR TREINAMENTO,
  *                                      TREINAMENTO EXECUTADO, CHAMADOS,
@@ -81,7 +81,9 @@ const TIPO_CHAMADO_LABELS = [
 const BOARD_RENAMES = {
   Design: 'Artes',
   'Chamados Técnicos': 'Operacional',
-  Comercial: 'Pedido de Venda',
+  // Reverte a renomeação anterior — o time prefere o nome curto "Comercial"
+  // como rótulo do board (o form em si segue como "Pedido de Venda").
+  'Pedido de Venda': 'Comercial',
 };
 
 // Renames idempotentes: mapeia nome antigo → { name, type } novo. A função
@@ -99,7 +101,7 @@ const LIST_RENAMES = {
     'Em Execução': { name: 'ROTA', type: 'active' },
     Executados: { name: 'CONCLUÍDO', type: 'closed' },
   },
-  'Pedido de Venda': {
+  Comercial: {
     'Em Espera': { name: 'PEDIDO DE VENDA', type: 'active' },
     'Em Execução': { name: 'PEDIDO DE ARTE', type: 'active' },
     Executados: { name: 'OS CHAMADO', type: 'active' },
@@ -447,7 +449,7 @@ exports.seed = async (knex) => {
   await cleanupStaleBoards(knex, fallbackProjectId);
 
   // Renomeia primeiro pra que as chamadas ensureBoard seguintes encontrem
-  // os boards pelo nome novo (Artes, Operacional, Pedido de Venda).
+  // os boards pelo nome canônico (Artes, Operacional, Comercial).
   await renameLegacyBoards(knex);
 
   // --- Artes board (ex-Design) ---
@@ -520,16 +522,16 @@ exports.seed = async (knex) => {
     POSITION_GAP * (PRIORITY_LABELS.length + 1),
   );
 
-  // --- Pedido de Venda board (ex-Comercial) ---
+  // --- Comercial board ---
   const { boardId: comercialBoardId, projectId: comercialProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
-    'Pedido de Venda',
+    'Comercial',
     'table',
     POSITION_GAP * 3,
   );
   await ensureBoardMembership(knex, comercialProjectId, comercialBoardId, admin.id);
-  await renameLegacyLists(knex, comercialBoardId, 'Pedido de Venda');
+  await renameLegacyLists(knex, comercialBoardId, 'Comercial');
   await seedListsOnBoard(knex, comercialBoardId, COMERCIAL_LISTS);
 
   // --- Atendimento board (06/2026) ---

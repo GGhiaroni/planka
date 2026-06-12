@@ -164,7 +164,7 @@ async function comercialHandler(req, res) {
         board_id: card.boardId ? String(card.boardId) : null,
         list_id: card.listId ? String(card.listId) : null,
         project_name: 'PDView ERP',
-        board_name: 'Pedido de Venda',
+        board_name: 'Comercial',
         list_name: 'PEDIDO DE VENDA',
         name: cardName,
         description: card.description || null,
