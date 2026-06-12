@@ -3,7 +3,7 @@
  *
  * Boards seeded under "PDView ERP" project (nomes finais — 06/2026):
  *   - Artes          — kanban — lists: PEDIDO DE ARTE, EXECUTADO (closed)
- *   - Operacional    — table  — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
+ *   - Operacional    — kanban — lists: CHAMADOS, ROTA, CONCLUÍDO (closed)
  *                             — labels: ASSISTÊNCIA TÉCNICA, INSTALAÇÃO
  *                                       (+ 8 legacy priority labels kept)
  *   - Comercial      — table — lists: PEDIDO DE VENDA, PEDIDO DE ARTE,
@@ -286,6 +286,13 @@ async function ensureBoard(knex, fallbackProjectId, name, defaultView, position)
         .where({ board_id: existing.id })
         .update({ project_id: fallbackProjectId });
     }
+    // Atualiza o tipo de visualização padrão se o seed pediu diferente do que
+    // está no banco. Em particular, boards 'table' com 0 cards não mostram
+    // cabeçalho de colunas — mudar pra 'kanban' resolve isso sem precisar
+    // recriar o board.
+    if (existing.default_view !== defaultView) {
+      await knex('board').where({ id: existing.id }).update({ default_view: defaultView });
+    }
     return { boardId: existing.id, projectId: fallbackProjectId };
   }
 
@@ -466,11 +473,13 @@ exports.seed = async (knex) => {
   await seedListsOnBoard(knex, designBoardId, DESIGN_LISTS);
 
   // --- Operacional board (ex-Chamados Técnicos) ---
+  // kanban view porque o board tem fluxo de estados (CHAMADOS → ROTA →
+  // CONCLUÍDO) e o time precisa enxergar as colunas mesmo sem cards.
   const { boardId: chamadosBoardId, projectId: chamadosProjectId } = await ensureBoard(
     knex,
     fallbackProjectId,
     'Operacional',
-    'table',
+    'kanban',
     POSITION_GAP * 2,
   );
   await ensureBoardMembership(knex, chamadosProjectId, chamadosBoardId, admin.id);
