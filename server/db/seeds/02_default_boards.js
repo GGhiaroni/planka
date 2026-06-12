@@ -111,6 +111,20 @@ const LIST_RENAMES = {
 // para não perder dados.
 const DESIGN_LEGACY_LISTS_TO_MIGRATE = ['Produção', 'Aprovação', 'Entregue', 'Falar com o cliente'];
 
+// Boards que o time criou manualmente em staging (06/2026) e que devem ser
+// removidos pra deixar só os 4 canônicos (Artes / Operacional / Pedido de
+// Venda / Atendimento). Os cards e dependências desses boards são apagados
+// junto — só rode o seed depois de confirmar que ninguém precisa dos dados.
+const STALE_BOARD_NAMES = [
+  'Demanda',
+  'Chamados',
+  'COMERCIAL',
+  'ATENDIMENTO',
+  'OPERACIONAL (CHAMADOS)',
+  'ARTES',
+  'FINANCEIRO',
+];
+
 async function ensureProject(knex, adminUserId) {
   const existing = await knex('project').where('name', PROJECT_NAME).first();
   if (existing) return existing.id;
@@ -164,6 +178,66 @@ async function renameLegacyBoards(knex) {
         await knex('board').where({ id: existing.id }).update({ name: newName });
       }
     }
+  }
+}
+
+// Apaga um board e todas as dependências em cascata manual (não há FK
+// constraints no schema do Planka). Idempotente: rodar 2 vezes é noop.
+async function deleteBoardDeep(knex, boardId) {
+  const listIds = await knex('list').where({ board_id: boardId }).pluck('id');
+  const cardIds = listIds.length ? await knex('card').whereIn('list_id', listIds).pluck('id') : [];
+
+  if (cardIds.length > 0) {
+    // task → task_list → card
+    const taskListIds = await knex('task_list').whereIn('card_id', cardIds).pluck('id');
+    if (taskListIds.length > 0) {
+      await knex('task').whereIn('task_list_id', taskListIds).delete();
+      await knex('task_list').whereIn('id', taskListIds).delete();
+    }
+    // custom_field_value → custom_field/group/card (limpa antes do grupo)
+    await knex('custom_field_value').whereIn('card_id', cardIds).delete();
+    // attachment, comment, card_label, subscriptions e ações apontando p/ card
+    await knex('attachment').whereIn('card_id', cardIds).delete();
+    await knex('comment').whereIn('card_id', cardIds).delete();
+    await knex('card_label').whereIn('card_id', cardIds).delete();
+    await knex('card_subscription').whereIn('card_id', cardIds).delete();
+    await knex('card_membership').whereIn('card_id', cardIds).delete();
+    await knex('notification').whereIn('card_id', cardIds).delete();
+    await knex('action').whereIn('card_id', cardIds).delete();
+    // custom_field_group por card + os custom_field dentro
+    const cardGroupIds = await knex('custom_field_group').whereIn('card_id', cardIds).pluck('id');
+    if (cardGroupIds.length > 0) {
+      await knex('custom_field').whereIn('custom_field_group_id', cardGroupIds).delete();
+      await knex('custom_field_group').whereIn('id', cardGroupIds).delete();
+    }
+    await knex('card').whereIn('id', cardIds).delete();
+  }
+
+  // Dependências a nível de board
+  const boardGroupIds = await knex('custom_field_group').where({ board_id: boardId }).pluck('id');
+  if (boardGroupIds.length > 0) {
+    await knex('custom_field').whereIn('custom_field_group_id', boardGroupIds).delete();
+    await knex('custom_field_group').whereIn('id', boardGroupIds).delete();
+  }
+
+  await knex('list').where({ board_id: boardId }).delete();
+  await knex('label').where({ board_id: boardId }).delete();
+  await knex('board_membership').where({ board_id: boardId }).delete();
+  await knex('board_subscription').where({ board_id: boardId }).delete();
+  await knex('action').where({ board_id: boardId }).delete();
+  await knex('board').where({ id: boardId }).delete();
+}
+
+// Limpa os boards manuais que sobraram da fase de prototipagem do time. Só
+// remove boards listados em STALE_BOARD_NAMES — qualquer outro board no
+// projeto (incluindo os criados pelo seed) fica intocado.
+async function cleanupStaleBoards(knex, projectId) {
+  const boards = await knex('board')
+    .where({ project_id: projectId })
+    .whereIn('name', STALE_BOARD_NAMES);
+  for (let i = 0; i < boards.length; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await deleteBoardDeep(knex, boards[i].id);
   }
 }
 
@@ -367,6 +441,10 @@ exports.seed = async (knex) => {
   }
 
   const fallbackProjectId = await ensureProject(knex, admin.id);
+
+  // Antes de tudo: apaga os boards manuais que o time criou em staging
+  // e não precisa mais. Idempotente — boards já removidos viram noop.
+  await cleanupStaleBoards(knex, fallbackProjectId);
 
   // Renomeia primeiro pra que as chamadas ensureBoard seguintes encontrem
   // os boards pelo nome novo (Artes, Operacional, Pedido de Venda).
