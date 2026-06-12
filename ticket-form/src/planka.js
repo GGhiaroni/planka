@@ -57,9 +57,16 @@ async function getToken() {
 
 // In-memory cache of discovered IDs (project, boards, lists, labels).
 // First request resolves them via the API and they are reused afterwards.
+//
+// PLANKA_LIST_ID / PLANKA_CHAMADOS_LIST_ID (env) eram aceitos como atalho
+// pra evitar lookup por nome, mas em deploys antigos esses valores às
+// vezes ficam pinados em IDs que não existem mais (boards renomeados,
+// listas migradas). Em vez de confiar cego no env, agora a gente *valida*
+// o ID pinado na primeira chamada via /api/lists/{id}; se for 404, marca
+// como inválido e cai pro lookup por nome.
 const idCache = {
-  designListId: config.PLANKA_LIST_ID,
-  chamadosListId: config.PLANKA_CHAMADOS_LIST_ID,
+  designListId: null,
+  chamadosListId: null,
   priorityLabels: { ...config.PRIORITY_LABELS },
   chamadosBoardId: null,
   comercialBoardId: null,
@@ -69,7 +76,30 @@ const idCache = {
   // boardId → { labelName → labelId } cached label lookups, populated
   // lazily by getLabelIdOnBoard.
   labelsByBoard: {},
+  // Estado de validação dos IDs vindos de env. null = ainda não tentei;
+  // true = id é valido (use-o); false = pinned veio podre, usa name lookup.
+  pinnedDesignListValid: null,
+  pinnedChamadosListValid: null,
 };
+
+// Confere via API se um list ID existe. Usado pra detectar pinned env IDs
+// stale (sobra de boards renomeados/deletados). Best-effort: erros de rede
+// retornam null (não consigo afirmar nem negar).
+async function isListIdValid(listId) {
+  try {
+    const token = await getToken();
+    const res = await fetch(`${PLANKA_URL}/api/lists/${listId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) {
+      tokenCache = { token: null, expiresAt: 0 };
+      return isListIdValid(listId);
+    }
+    return res.ok;
+  } catch {
+    return null;
+  }
+}
 
 async function apiGet(path) {
   const token = await getToken();
@@ -116,6 +146,22 @@ async function indexLabelsInBoard(boardId) {
 
 async function getDesignListId() {
   if (idCache.designListId) return idCache.designListId;
+
+  // Tenta o pinned env ID antes do lookup por nome. Se for stale (404),
+  // cai pro fallback.
+  if (config.PLANKA_LIST_ID && idCache.pinnedDesignListValid === null) {
+    idCache.pinnedDesignListValid = await isListIdValid(config.PLANKA_LIST_ID);
+    if (idCache.pinnedDesignListValid === false) {
+      console.warn(
+        `[ticket-form] PLANKA_LIST_ID=${config.PLANKA_LIST_ID} aponta pra uma lista inexistente. Caindo pro lookup por nome (${PLANKA_DESIGN_BOARD_NAME} / ${PLANKA_DESIGN_LIST_NAME}).`,
+      );
+    }
+  }
+  if (config.PLANKA_LIST_ID && idCache.pinnedDesignListValid === true) {
+    idCache.designListId = config.PLANKA_LIST_ID;
+    return config.PLANKA_LIST_ID;
+  }
+
   const boardId = await findBoardId(PLANKA_PROJECT_NAME, PLANKA_DESIGN_BOARD_NAME);
   if (!boardId) {
     throw new Error(
@@ -146,6 +192,21 @@ async function getChamadosBoardId() {
 
 async function getChamadosListId() {
   if (idCache.chamadosListId) return idCache.chamadosListId;
+
+  // Pinned env ID — valida antes de usar, igual ao design.
+  if (config.PLANKA_CHAMADOS_LIST_ID && idCache.pinnedChamadosListValid === null) {
+    idCache.pinnedChamadosListValid = await isListIdValid(config.PLANKA_CHAMADOS_LIST_ID);
+    if (idCache.pinnedChamadosListValid === false) {
+      console.warn(
+        `[ticket-form] PLANKA_CHAMADOS_LIST_ID=${config.PLANKA_CHAMADOS_LIST_ID} aponta pra uma lista inexistente. Caindo pro lookup por nome (${PLANKA_CHAMADOS_BOARD_NAME} / ${PLANKA_CHAMADOS_LIST_NAME}).`,
+      );
+    }
+  }
+  if (config.PLANKA_CHAMADOS_LIST_ID && idCache.pinnedChamadosListValid === true) {
+    idCache.chamadosListId = config.PLANKA_CHAMADOS_LIST_ID;
+    return config.PLANKA_CHAMADOS_LIST_ID;
+  }
+
   const boardId = await getChamadosBoardId();
   const listId = await findListIdInBoard(boardId, PLANKA_CHAMADOS_LIST_NAME);
   if (!listId) {
